@@ -332,7 +332,8 @@
         "edilene de oliveira rique",
         "rita de cassia da conceicao",
         "pag*lilianedasilva",
-        "francisco pedro da sil"
+        "francisco pedro da sil",
+        "isamaria"
     ],
     "Locação de Veículos": [
         "Locadora",
@@ -729,7 +730,7 @@
     "Pagamento de Fatura": [
         "Pagamento recebido",
         "pgto fatura",
-        "pagto cartao" 
+        "pagto cartao"
     ],
     "Encargos de Parcelamento Fatura": [
         "parcelamento",
@@ -740,23 +741,23 @@
         "encerramento de divida",
         "liquidacao de divida"
     ],
-    "IOF de atraso": [ 
+    "IOF de atraso": [
         "iof de atraso"
     ],
-    "Juros de dívida encerrada": [ 
+    "Juros de dívida encerrada": [
         "juros de dívida encerrada",
         "juros divida encerrada"
     ],
-    "Multa de atraso": [ 
-        "multa de atraso" 
+    "Multa de atraso": [
+        "multa de atraso"
     ],
-    "Juros e Taxas Diversas": [ 
+    "Juros e Taxas Diversas": [
         "juros de atraso",
-        "credito rotativo", 
+        "credito rotativo",
         "juros remuneratorios",
         "iof rotativo"
     ],
-    "Estorno": [ 
+    "Estorno": [
         "estorno",
         "credito de",
         "estorno de juros da divida encerrada",
@@ -769,8 +770,8 @@
         "saldo em atraso"
     ],
     "Taxa": [
-        "iof" 
-    ], 
+        "iof"
+    ],
     "Não Classificado": [],
     "Não Informado": [],
     "Sem Categoria/Pix Credito": []
