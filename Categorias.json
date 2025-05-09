@@ -66,9 +66,7 @@
         "Wholesale",
         "Distribuição",
         "Bulk",
-        "Cash & Carry",
-        "Grossista",
-        "Supply"
+        "Cash & Carry"
     ],
     "Bares": [
         "Bar",
@@ -87,7 +85,6 @@
         "Petiscos",
         "Noturno",
         "Boate",
-        "recanto jampa ltda epp",
         "videoke do napoleao",
         "recanto jampa",
         "zimbro"
@@ -96,18 +93,7 @@
         "Loja",
         "Varejo",
         "Comércio",
-        "Shopping",
-        "Departamento",
-        "Outlet",
-        "Bazar",
-        "Boutique",
-        "Emporium",
-        "Mercado",
-        "Store",
-        "Retail",
-        "Feira",
-        "Quiosque",
-        "Armazém"
+        "Feira"
     ],
     "Construção": [
         "Construtora",
@@ -128,19 +114,10 @@
     "Delivery": [
         "Entrega",
         "Delivery",
-        "Pedido",
         "Rappi",
         "iFood",
-        "UberEats",
-        "Tele-entrega",
-        "Motoboy",
-        "Express",
         "Frete",
-        "Encomenda",
-        "Envio",
-        "Despacho",
-        "Remessa",
-        "ifd*aurea helena albuq"
+        "Encomenda"
     ],
     "Educação": [
         "Escola",
@@ -151,16 +128,7 @@
         "Educacional",
         "Ensino",
         "Professor",
-        "Academia",
-        "Treinamento",
-        "Didático",
-        "Pedagógico",
-        "Educativo",
-        "Formação",
-        "mp *j3acopiadora",
-        "j3acopiadora",
-        "alura",
-        "ph copiadora e papelaria"
+        "alura"
     ],
     "Eletronicos": [
         "Eletrônica",
@@ -178,7 +146,13 @@
         "Smart",
         "Eletroportátil",
         "steam purchase",
-        "magico do notebook"
+        "magico do notebook",
+        "xbox",
+        "microsoft",
+        "apple",
+        "sony",
+        "playstation"
+
     ],
     "Entretenimento": [
         "Cinema",
@@ -187,17 +161,9 @@
         "Festival",
         "Parque",
         "Evento",
-        "Diversão",
-        "Lazer",
         "Ingresso",
         "Bilheteria",
-        "Atrações",
         "Entertainment",
-        "Espetáculo",
-        "Recreação",
-        "xbox",
-        "amazonprimebr",
-        "ppro *microsoft",
         "grao mestre luderia"
     ],
     "Esportes": [
@@ -242,7 +208,6 @@
         "Bob's",
         "Habib's",
         "Fast Food",
-        "Lanchonete",
         "Lanches",
         "Express",
         "Snack",
@@ -269,7 +234,6 @@
         "Motel",
         "Resort",
         "Albergue",
-        "Inn",
         "Hospedaria",
         "Estadia",
         "Acomodação",
@@ -327,13 +291,7 @@
         "Petiscos",
         "nadjamendes",
         "felicidade campos cavalcante gomes",
-        "maria eduarda frança de andrade",
-        "fabiano alves da silva",
-        "edilene de oliveira rique",
-        "rita de cassia da conceicao",
-        "pag*lilianedasilva",
-        "francisco pedro da sil",
-        "isamaria"
+        "maria eduarda frança de andrade"
     ],
     "Locação de Veículos": [
         "Locadora",
@@ -675,22 +633,6 @@
         "Translado",
         "Deslocamento",
         "sintur-jp"
-    ],
-    "Transportes e Logística": [
-        "Logística",
-        "Transporte",
-        "Carga",
-        "Frete",
-        "Shipping",
-        "Express",
-        "Delivery",
-        "Transportadora",
-        "Courier",
-        "Logistics",
-        "Expedição",
-        "Armazenagem",
-        "Supply Chain",
-        "Distribuição"
     ],
     "Veículos e Autopeças": [
         "Concessionária",
