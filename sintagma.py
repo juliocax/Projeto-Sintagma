@@ -8,7 +8,7 @@ import numpy as np
 import re
 import json
 import os
-import io # For StringIO
+import io
 
 from categorizador import (
     processar_faturas,
@@ -192,16 +192,15 @@ def preparar_dataframe_dashboard(df: pd.DataFrame) -> pd.DataFrame:
         df_out[COLUNA_DATA] = pd.to_datetime(df_out[COLUNA_DATA], errors='coerce')
         df_out.dropna(subset=[COLUNA_DATA], inplace=True) # Remove rows where date conversion failed
 
-        if not df_out.empty: # Recheck after dropna
+        if not df_out.empty: 
             date_col_series = df_out[COLUNA_DATA].dt
-            # Always derive these columns to ensure consistency, especially after concatenating new data
+            
             df_out['mes_ano'] = date_col_series.to_period('M').astype(str)
             df_out['ano'] = date_col_series.year
             df_out['mes'] = date_col_series.month
             df_out['dia_da_semana'] = date_col_series.day_name()
             df_out['dia_do_mes'] = date_col_series.day
 
-    # Always derive ciclo_fatura if COLUNA_FATURA_ORIGEM is present
     if COLUNA_FATURA_ORIGEM in df_out.columns:
         df_out['ciclo_fatura'] = df_out[COLUNA_FATURA_ORIGEM].apply(extrair_ciclo_do_nome_arquivo)
     elif 'ciclo_fatura' not in df_out.columns: # If column doesn't exist at all
@@ -366,7 +365,9 @@ if processar_btn_clicked and uploaded_files:
             caminho_arquivo_estab_final,
             log_placeholder
         )
+
     elif not st.session_state.df_processado.empty and novos_nomes_arquivos.issubset(st.session_state.nomes_arquivos_faturas_ja_processados):
+
         log_mensagem_app("Nenhum arquivo novo para processar. Exibindo dados atuais.", "info")
     elif st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files:
         log_mensagem_app(f"Arquivos parecem já processados. Reprocessando todos {len(uploaded_files)}.", "warning")
@@ -403,12 +404,11 @@ if processar_btn_clicked and uploaded_files:
         
         nomes_faturas_processadas_novas = set(df_novas_faturas[COLUNA_FATURA_ORIGEM].unique()) if COLUNA_FATURA_ORIGEM in df_novas_faturas else set()
 
-        if st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files: # Reprocessing all
+        if st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files:
             for f_up in uploaded_files:
                  st.session_state.nomes_arquivos_faturas_ja_processados.add(f_up.name)
         else: 
             for f_proc in arquivos_para_processar_agora:
-                # If COLUNA_FATURA_ORIGEM was not present, assume success by file name as fallback
                 if f_proc.name in nomes_faturas_processadas_novas or not nomes_faturas_processadas_novas: 
                     st.session_state.nomes_arquivos_faturas_ja_processados.add(f_proc.name)
         st.rerun()
@@ -533,11 +533,6 @@ if not st.session_state.df_processado.empty:
                  st.info("Não há transações de consumo para editar. Todas as transações atuais pertencem a categorias financeiras/fixas.")
             else:
                  st.info("Nenhum item de consumo corresponde aos filtros de edição atuais.")
-    
-    # df_dashboard_master is prepared at the beginning of this block from st.session_state.df_processado.
-    # Edits directly update st.session_state.df_processado and trigger a rerun,
-    # so df_dashboard_master will be up-to-date on the next script run.
-    # The line `st.session_state.df_processado = df_dashboard_master.copy()` was removed from here.
 
     df_para_relatorios = df_dashboard_master.copy()
     st.sidebar.subheader("Filtros do Dashboard")
@@ -641,7 +636,6 @@ if not st.session_state.df_processado.empty:
             dias_com_gastos_por_mes = df_freq_calc.groupby('mes_ano')[COLUNA_DATA].nunique().reset_index()
             dias_com_gastos_por_mes.rename(columns={COLUNA_DATA: 'dias_com_transacao'}, inplace=True)
             if not dias_com_gastos_por_mes.empty:
-                # Ensure mes_ano can be converted to date for daysinmonth
                 dias_com_gastos_por_mes['temp_date_for_daysinmonth'] = pd.to_datetime(dias_com_gastos_por_mes['mes_ano'].astype(str) + '-01', errors='coerce')
                 dias_com_gastos_por_mes.dropna(subset=['temp_date_for_daysinmonth'], inplace=True)
                 if not dias_com_gastos_por_mes.empty:
@@ -753,7 +747,6 @@ if not st.session_state.df_processado.empty:
 
     if not df_historico_consumo_plot.empty: # df_historico_consumo_plot has non-consumo excluded and mes_ano
         top_n_media_cat_consumo = st.slider("Top N Categorias por Média Mensal:", 3, 20, 10, key="slider_top_n_media_cat_g5_v7")
-        # Ensure 'mes_ano' and COLUNA_CATEGORIA are suitable for grouping
         if 'mes_ano' in df_historico_consumo_plot.columns and COLUNA_CATEGORIA in df_historico_consumo_plot.columns:
             media_cat_mes_historico_plot = df_historico_consumo_plot.groupby(['mes_ano', COLUNA_CATEGORIA])[COLUNA_VALOR].sum().unstack(fill_value=0).mean(axis=0).reset_index()
             media_cat_mes_historico_plot.columns = [COLUNA_CATEGORIA, 'media_mensal_gasto']
@@ -798,7 +791,6 @@ if not st.session_state.df_processado.empty:
                 }
                 colunas_presentes_para_exibir = [key for key in colunas_exibir_map if key in df_consulta_fatura_base.columns]
                 
-                # Sort first by raw data columns for consistency
                 sort_by_raw_cols = []
                 if 'ciclo_fatura' in colunas_presentes_para_exibir: sort_by_raw_cols.append('ciclo_fatura')
                 if COLUNA_DATA in colunas_presentes_para_exibir: sort_by_raw_cols.append(COLUNA_DATA)
