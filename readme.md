@@ -1,7 +1,7 @@
 
 # Syn(tagmᵃ)
 
-[![Abrir Painel](https://img.shields.io/badge/Abrir%20Online-Streamlit-brightgreen?logo=streamlit)](https://projeto-sintagma.streamlit.app/) [![Instalar Painel](https://img.shields.io/badge/Instalar%20Local-pip%20install-blue?logo=pypi)](https://pypi.org/project/syntagma/) [![Documentação](https://img.shields.io/badge/Documentação-Docs-orange?logo=readthedocs)](https://projeto-sintagma-docs.com) [![Reportar Problema](https://img.shields.io/badge/Reportar%20Problema-GitHub-red?logo=github)](https://github.com/juliocax/Projeto-Sintagma/issues)
+[![Abrir Painel](https://img.shields.io/badge/Abrir%20Online-Streamlit-brightgreen?logo=streamlit)](https://projeto-sintagma.streamlit.app/) [![Instalar Painel](https://img.shields.io/badge/Instalar%20Local-pip%20install-blue?logo=pypi)](https://pypi.org) [![Documentação](https://img.shields.io/badge/Documentação-Docs-orange?logo=readthedocs)](https://github.com/juliocax/Projeto-Sintagma/issues) [![Reportar Problema](https://img.shields.io/badge/Reportar%20Problema-GitHub-red?logo=github)](https://github.com/juliocax/Projeto-Sintagma/issues)
 
 Este painel interativo que visa ser uma ferramenta simples para acompanhar e entender melhor o consumo no cartão de crédito.
 

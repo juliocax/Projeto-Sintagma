@@ -2,4 +2,4 @@ Faturas/
 .venv/
 *.csv
 __pycache__/
-.ipynb
+*.ipynb
