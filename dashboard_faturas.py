@@ -1,4 +1,5 @@
 # dashboard_faturas.py
+
 from dateutil.relativedelta import relativedelta
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -32,7 +33,6 @@ try:
     with col2:
         st.title("Syn(tagmᵃ) Visualizador de uso do Cartão de Crédito")
 
-
 except FileNotFoundError:
     st.error(f"Erro: A imagem '{nome_arquivo_imagem}' não foi encontrada. Verifique o caminho e o nome do arquivo.")
 except Exception as e:
@@ -42,31 +42,50 @@ st.markdown("Este painel interativo permite analisar seus gastos de cartão de c
 st.markdown("---")
 
 CATEGORIAS_CREDITO_AJUSTE = [
-    'Pagamento de Fatura', 'Estorno', 'Ajustes Financeiros Nubank',
-    'Ajuste Parcelamento Fatura', 'Encerramento de dívida', 'Crédito Diversos'
+    'Pagamento de Fatura', 'Estorno', 'Ajustes Financeiros Nubank', # 'Ajustes Financeiros Nubank' pode ser um exemplo
+    'Ajuste Parcelamento Fatura', 'Encerramento de dívida', 'Crédito Diversos',
+    'Estorno de juros da dívida encerrada' # Adicionando explicitamente
 ]
 CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO = [
     'Juros de dívida encerrada', 'IOF de atraso',
-    'Multa de atraso', 'Juros e Taxas Diversas', 'Taxas'
+    'Multa de atraso', 'Juros e Taxas Diversas', 'Taxa', # 'Taxa' pode ser um nome mais genérico se 'Taxas' for plural
+    'Juros de atraso' # Adicionando explicitamente
 ]
 CATEGORIA_ENCARGOS_PARCELAMENTO_FATURA = "Encargos de Parcelamento Fatura"
+
 CATEGORIAS_AJUSTE_SALDO_DEVEDOR = [
     'Saldo em atraso',
-    'Crédito de atraso'
+    'Crédito de atraso' # Exemplo, se houver
 ]
-CATEGORIAS_NAO_CONSUMO_GERAL = list(set(
+
+# Nova lista: Categorias que são fixas e não devem aparecer para edição manual
+# Estas são geralmente transações financeiras, não compras de consumo.
+CATEGORIAS_FIXAS_NAO_EDITAVEIS = sorted(list(set(
     CATEGORIAS_CREDITO_AJUSTE +
     CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO +
     [CATEGORIA_ENCARGOS_PARCELAMENTO_FATURA] +
-    CATEGORIAS_AJUSTE_SALDO_DEVEDOR
-))
+    CATEGORIAS_AJUSTE_SALDO_DEVEDOR +
+    ["Taxas"] # Se você tiver uma categoria "Taxas" no plural
+)))
+
+
+# CATEGORIAS_NAO_CONSUMO_GERAL: usada para filtrar gráficos de consumo.
+# Deve incluir todas as categorias que não são gastos de consumo direto.
+# Basicamente, será a mesma que CATEGORIAS_FIXAS_NAO_EDITAVEIS por enquanto.
+CATEGORIAS_NAO_CONSUMO_GERAL = CATEGORIAS_FIXAS_NAO_EDITAVEIS[:]
+
+
+# CATEGORIAS_ESSENCIAIS_PARA_EDICAO: categorias que devem *sempre* estar disponíveis no
+# dropdown de edição, mesmo que não haja transações nelas ou que sejam fixas.
+# Inclui as fixas para consistência, mais as de erro/sem categoria.
 CATEGORIAS_ESSENCIAIS_PARA_EDICAO = sorted(list(set(
-    CATEGORIAS_NAO_CONSUMO_GERAL +
+    CATEGORIAS_FIXAS_NAO_EDITAVEIS + # Inclui todas as categorias de não-consumo
     ["Sem Categoria", "Erro Fuzzy Match", "Sem Categoria (Fuzzy - Mapa Principal)",
      "Sem Categoria (Lookup Principal Vazio)", "Sem Categoria (Título Vazio)", "Sem Categoria/Pix Credito"]
 )))
-CATEGORIA_PAGAMENTO_FATURA = "Pagamento de Fatura"
 
+
+CATEGORIA_PAGAMENTO_FATURA = "Pagamento de Fatura" # Apenas como referência, já está em CREDITO_AJUSTE
 
 def extrair_ciclo_do_nome_arquivo(nome_arquivo):
     if not isinstance(nome_arquivo, str): return None
@@ -98,7 +117,7 @@ def inicializar_session_state():
     }
     for key, value in defaults.items():
         if key not in st.session_state: st.session_state[key] = value
-    
+
     # Ensure nested keys in filtros_sidebar also exist
     if 'filtros_sidebar' in st.session_state:
         st.session_state.filtros_sidebar.setdefault('periodos_ciclo_arquivo', ["Todos"])
@@ -107,9 +126,11 @@ def inicializar_session_state():
     if 'categorias_editaveis' not in st.session_state or not st.session_state.categorias_editaveis:
         base_memoria = st.session_state.categorias_base_memoria if isinstance(st.session_state.categorias_base_memoria, dict) else {}
         lista_cats = sorted(list(base_memoria.keys()))
+        # Garantir que todas as CATEGORIAS_ESSENCIAIS_PARA_EDICAO estejam na lista
         for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_EDICAO:
             if cat_essencial not in lista_cats: lista_cats.append(cat_essencial)
         st.session_state.categorias_editaveis = sorted(list(set(lista_cats)))
+
 
 def gerar_dados_sessao_para_salvar():
     df_para_salvar = st.session_state.df_processado.copy()
@@ -147,36 +168,37 @@ def carregar_dados_sessao_do_arquivo(uploaded_file_content):
         st.session_state.tipo_categorizacao_selecionada = estado_carregado.get('tipo_categorizacao_selecionada', "Genérica (Base Editável)")
         st.session_state.estado_cnpj_selecionado = estado_carregado.get('estado_cnpj_selecionado', "Paraíba")
         st.session_state.municipio_cnpj_selecionado = estado_carregado.get('municipio_cnpj_selecionado', "João Pessoa")
-        
+
         filtros_carregados = estado_carregado.get('filtros_sidebar', {})
         st.session_state.filtros_sidebar = {
             'periodos_ciclo_arquivo': filtros_carregados.get('periodos_ciclo_arquivo', ["Todos"]),
             'categorias_despesa': filtros_carregados.get('categorias_despesa', ["Todos"])
         }
-        
+    
         st.session_state.nomes_arquivos_faturas_ja_processados = set(estado_carregado.get('nomes_arquivos_faturas_ja_processados', []))
         st.session_state.edit_search_term = estado_carregado.get('edit_search_term', ""); st.session_state.edit_category_filter = estado_carregado.get('edit_category_filter', "Todas"); st.session_state.edit_current_page = estado_carregado.get('edit_current_page', 1)
         st.session_state.ciclos_consulta_selecionados = estado_carregado.get('ciclos_consulta_selecionados', [])
-        
+    
         categorias_base_salvas = estado_carregado.get('categorias_base_memoria_json')
         if categorias_base_salvas and isinstance(categorias_base_salvas, dict): st.session_state.categorias_base_memoria = categorias_base_salvas
         else: st.session_state.categorias_base_memoria = carregar_categorias_base_do_json()
-        
+    
         base_memoria = st.session_state.categorias_base_memoria if isinstance(st.session_state.categorias_base_memoria, dict) else {}; lista_cats = sorted(list(base_memoria.keys()))
-        for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_EDICAO:
+        for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_EDICAO: # Usa a lista atualizada
             if cat_essencial not in lista_cats: lista_cats.append(cat_essencial)
         st.session_state.categorias_editaveis = sorted(list(set(lista_cats)))
-        
+    
         st.sidebar.success(f"Progresso carregado!"); log_mensagem_app(f"Sessão carregada (salva em {estado_carregado.get('timestamp_salvo', 'data desconhecida')}).", "success"); st.session_state.arquivo_sessao_uploader_key += 1; st.rerun()
     except Exception as e: st.sidebar.error(f"Erro ao carregar sessão: {e}"); log_mensagem_app(f"Falha ao carregar sessão: {e}", "error")
+
 
 inicializar_session_state()
 
 st.sidebar.header("⚙️ Controles do Dashboard")
 st.sidebar.subheader("1. Arquivos de Fatura")
-uploaded_files = st.sidebar.file_uploader("Selecione CSVs de fatura:", type=["csv"], accept_multiple_files=True, key="file_uploader_faturas_v15")
+uploaded_files = st.sidebar.file_uploader("Selecione CSVs de fatura:", type=["csv"], accept_multiple_files=True, key="file_uploader_faturas_v16") # Incremented key
 st.sidebar.subheader("2. Tipo de Categorização")
-tipo_cat_selecionada_key = "radio_tipo_cat_v15"
+tipo_cat_selecionada_key = "radio_tipo_cat_v16" # Incremented key
 st.session_state.tipo_categorizacao_selecionada = st.sidebar.radio("Método:", ["Genérica (Base Editável)", "Específica (Base Editável + CNPJ Gov)"], index=0 if st.session_state.tipo_categorizacao_selecionada.startswith("Genérica") else 1, key=tipo_cat_selecionada_key)
 usar_cat_especifica_bool = st.session_state.tipo_categorizacao_selecionada.startswith("Específica")
 caminho_arquivo_estab_final = None
@@ -184,17 +206,17 @@ if usar_cat_especifica_bool:
     st.sidebar.subheader("3. Base de Dados CNPJ")
     opcoes_locais_cnpj = {"Paraíba": {"Joao_Pessoa": "João Pessoa"}}; lista_estados_disponiveis = list(opcoes_locais_cnpj.keys())
     if st.session_state.estado_cnpj_selecionado not in lista_estados_disponiveis: st.session_state.estado_cnpj_selecionado = lista_estados_disponiveis[0] if lista_estados_disponiveis else None
-    st.session_state.estado_cnpj_selecionado = st.sidebar.selectbox("Estado:", lista_estados_disponiveis, index=lista_estados_disponiveis.index(st.session_state.estado_cnpj_selecionado) if st.session_state.estado_cnpj_selecionado in lista_estados_disponiveis else 0, key="select_estado_cnpj_v15")
+    st.session_state.estado_cnpj_selecionado = st.sidebar.selectbox("Estado:", lista_estados_disponiveis, index=lista_estados_disponiveis.index(st.session_state.estado_cnpj_selecionado) if st.session_state.estado_cnpj_selecionado in lista_estados_disponiveis else 0, key="select_estado_cnpj_v16") # Incremented key
     municipios_do_estado_map = opcoes_locais_cnpj.get(st.session_state.estado_cnpj_selecionado, {}); lista_municipios_display = list(municipios_do_estado_map.values())
     idx_municipio_selecionado = 0; municipio_selecionado_display = st.session_state.municipio_cnpj_selecionado
     if municipio_selecionado_display in lista_municipios_display: idx_municipio_selecionado = lista_municipios_display.index(municipio_selecionado_display)
     elif lista_municipios_display: municipio_selecionado_display = lista_municipios_display[0]
-    st.session_state.municipio_cnpj_selecionado = st.sidebar.selectbox("Município:", lista_municipios_display, index=idx_municipio_selecionado, key="select_municipio_cnpj_v15", disabled=not bool(lista_municipios_display))
+    st.session_state.municipio_cnpj_selecionado = st.sidebar.selectbox("Município:", lista_municipios_display, index=idx_municipio_selecionado, key="select_municipio_cnpj_v16", disabled=not bool(lista_municipios_display)) # Incremented key
     if st.session_state.estado_cnpj_selecionado and st.session_state.municipio_cnpj_selecionado:
         uf_map = {"Paraíba": "PB"}; uf_sigla = uf_map.get(st.session_state.estado_cnpj_selecionado, st.session_state.estado_cnpj_selecionado.upper()[:2])
         nome_arquivo_municipio = next((k for k, v in municipios_do_estado_map.items() if v == st.session_state.municipio_cnpj_selecionado), None)
         if nome_arquivo_municipio:
-            caminho_arquivo_estab_final = f"{CAMINHO_PRINCIPAL_PROCESSADO_DEFAULT_PREFIXO}_{uf_sigla}_{nome_arquivo_municipio}.csv"
+            caminho_arquivo_estab_final = f"{CAMINHO_PRINCIPAL_PROCESSADO_DEFAULT_PREFIXO}{uf_sigla}{nome_arquivo_municipio}.csv"
             if os.path.exists(caminho_arquivo_estab_final): st.sidebar.caption(f"Usará base: {os.path.basename(caminho_arquivo_estab_final)}")
             else: st.sidebar.warning(f"Arquivo CNPJ não encontrado: {os.path.basename(caminho_arquivo_estab_final)}"); caminho_arquivo_estab_final = None
         else: st.sidebar.warning("Não foi possível determinar o arquivo da base CNPJ."); caminho_arquivo_estab_final = None
@@ -210,8 +232,8 @@ with log_placeholder.container():
         st.caption(msg)
 st.sidebar.subheader("5. Sessão")
 dados_sessao_json_str = gerar_dados_sessao_para_salvar()
-st.sidebar.download_button(label="💾 Baixar Progresso (.json)", data=dados_sessao_json_str, file_name=f"sessao_faturas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True, disabled=st.session_state.df_processado.empty, key="download_sessao_btn_v10")
-arquivo_sessao_carregado = st.sidebar.file_uploader("📂 Carregar Progresso (.json):", type=["json"], key=f"file_uploader_sessao_key_{st.session_state.arquivo_sessao_uploader_key}_v10")
+st.sidebar.download_button(label="💾 Baixar Progresso (.json)", data=dados_sessao_json_str, file_name=f"sessao_faturas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True, disabled=st.session_state.df_processado.empty, key="download_sessao_btn_v11") # Incremented key
+arquivo_sessao_carregado = st.sidebar.file_uploader("📂 Carregar Progresso (.json):", type=["json"], key=f"file_uploader_sessao_key_{st.session_state.arquivo_sessao_uploader_key}_v11") # Incremented key
 if arquivo_sessao_carregado is not None:
     conteudo_arquivo_sessao = arquivo_sessao_carregado.getvalue().decode("utf-8"); carregar_dados_sessao_do_arquivo(conteudo_arquivo_sessao)
 
@@ -227,7 +249,7 @@ if limpar_dados_btn_clicked:
     st.session_state.categorias_base_memoria = carregar_categorias_base_do_json()
     st.session_state.ciclos_consulta_selecionados = []
     base_memoria = st.session_state.categorias_base_memoria if isinstance(st.session_state.categorias_base_memoria, dict) else {}; lista_cats = sorted(list(base_memoria.keys()))
-    for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_EDICAO:
+    for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_EDICAO: # Usa a lista atualizada
         if cat_essencial not in lista_cats: lista_cats.append(cat_essencial)
     st.session_state.categorias_editaveis = sorted(list(set(lista_cats)))
     st.rerun()
@@ -262,11 +284,10 @@ if processar_btn_clicked and uploaded_files:
         df_existente = st.session_state.df_processado.copy() if not st.session_state.df_processado.empty else pd.DataFrame()
         df_combinado = pd.concat([df_existente, df_novas_faturas], ignore_index=True)
         subset_duplicatas = [COLUNA_TITULO, COLUNA_DATA, COLUNA_VALOR, COLUNA_FATURA_ORIGEM]
-        if all(col in df_combinado.columns for col in subset_duplicatas): # Ensure all columns exist before dropping
+        if all(col in df_combinado.columns for col in subset_duplicatas): 
             df_combinado.drop_duplicates(subset=subset_duplicatas, keep='first', inplace=True)
         elif COLUNA_FATURA_ORIGEM not in df_combinado.columns and all(col in df_combinado.columns for col in [COLUNA_TITULO, COLUNA_DATA, COLUNA_VALOR]):
              df_combinado.drop_duplicates(subset=[COLUNA_TITULO, COLUNA_DATA, COLUNA_VALOR], keep='first', inplace=True)
-
 
         df_combinado.reset_index(drop=True, inplace=True)
         df_combinado[COLUNA_EDIT_ID] = df_combinado.index
@@ -298,43 +319,60 @@ if not st.session_state.df_processado.empty:
             df_dashboard_master['ciclo_fatura'] = df_dashboard_master[COLUNA_FATURA_ORIGEM].apply(extrair_ciclo_do_nome_arquivo)
     elif 'ciclo_fatura' not in df_dashboard_master.columns:
         df_dashboard_master['ciclo_fatura'] = "Sem Origem Definida"
-    # Update session state only once after all potential modifications to df_dashboard_master
-    # st.session_state.df_processado = df_dashboard_master.copy() # This was potentially problematic, moved to end of this block
 
-    with st.expander("✏️ Revisar e Editar Categorias", expanded=False):
-        col_edit_filt1, col_edit_filt2 = st.columns(2); st.session_state.edit_search_term = col_edit_filt1.text_input("Buscar Título (edição):", value=st.session_state.edit_search_term, key="search_edit_v15")
-        current_unique_cats = sorted(df_dashboard_master[COLUNA_CATEGORIA].unique().tolist()); categorias_disponiveis_filtro_edicao = ["Todas"] + [cat for cat in current_unique_cats if pd.notna(cat)]
+    with st.expander("✏️ Revisar e Editar Categorias de Consumo", expanded=False):
+        col_edit_filt1, col_edit_filt2 = st.columns(2)
+        st.session_state.edit_search_term = col_edit_filt1.text_input("Buscar Título (edição de consumo):", value=st.session_state.edit_search_term, key="search_edit_v16") # Incremented key
+        
+        # Filtrar o df_dashboard_master para EXCLUIR as categorias fixas/não editáveis ANTES de popular o selectbox e a lista de edição
+        df_para_edicao_consumo = df_dashboard_master[~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_FIXAS_NAO_EDITAVEIS)].copy()
+
+        current_unique_cats_para_edicao = sorted(df_para_edicao_consumo[COLUNA_CATEGORIA].unique().tolist())
+        categorias_disponiveis_filtro_edicao = ["Todas"] + [cat for cat in current_unique_cats_para_edicao if pd.notna(cat)]
+        
         if st.session_state.edit_category_filter not in categorias_disponiveis_filtro_edicao: st.session_state.edit_category_filter = "Todas"
-        st.session_state.edit_category_filter = col_edit_filt2.selectbox("Filtrar Categoria (edição):", options=categorias_disponiveis_filtro_edicao, index=categorias_disponiveis_filtro_edicao.index(st.session_state.edit_category_filter), key="cat_filt_edit_v15")
-        df_edit_display = df_dashboard_master.copy()
+        st.session_state.edit_category_filter = col_edit_filt2.selectbox("Filtrar Categoria (edição de consumo):", options=categorias_disponiveis_filtro_edicao, index=categorias_disponiveis_filtro_edicao.index(st.session_state.edit_category_filter), key="cat_filt_edit_v16") # Incremented key
+        
+        df_edit_display = df_para_edicao_consumo.copy() # Começa com o df já filtrado das não editáveis
+
         if st.session_state.edit_search_term: df_edit_display = df_edit_display[df_edit_display[COLUNA_TITULO].str.contains(st.session_state.edit_search_term, case=False, na=False)]
         if st.session_state.edit_category_filter != "Todas": df_edit_display = df_edit_display[df_edit_display[COLUNA_CATEGORIA] == st.session_state.edit_category_filter]
-        items_per_page_edit = st.slider("Itens p/ página (edição):", 5, 50, 10, key="items_edit_v15")
+        
+        items_per_page_edit = st.slider("Itens p/ página (edição):", 5, 50, 10, key="items_edit_v16") # Incremented key
         if not df_edit_display.empty:
             total_pages_edit = max(1, (len(df_edit_display) - 1) // items_per_page_edit + 1)
             if st.session_state.edit_current_page > total_pages_edit: st.session_state.edit_current_page = total_pages_edit
-            st.session_state.edit_current_page = st.number_input("Página (edição):", min_value=1, max_value=total_pages_edit, value=st.session_state.edit_current_page, step=1, key="page_edit_v15")
+            st.session_state.edit_current_page = st.number_input("Página (edição):", min_value=1, max_value=total_pages_edit, value=st.session_state.edit_current_page, step=1, key="page_edit_v16") # Incremented key
             start_idx_edit = (st.session_state.edit_current_page - 1) * items_per_page_edit; end_idx_edit = st.session_state.edit_current_page * items_per_page_edit
             df_page_edit = df_edit_display.iloc[start_idx_edit:end_idx_edit]
+            
+            # Opções para o selectbox de edição: todas as categorias editáveis, menos as fixas
+            cat_options_edit_consumo = [cat for cat in st.session_state.categorias_editaveis if cat not in CATEGORIAS_FIXAS_NAO_EDITAVEIS]
+
             for _, row_to_edit in df_page_edit.iterrows():
                 edit_id = row_to_edit[COLUNA_EDIT_ID]; current_cat = row_to_edit[COLUNA_CATEGORIA]; titulo_original_transacao = row_to_edit[COLUNA_TITULO]
                 cols_display_edit = st.columns([0.4, 0.15, 0.15, 0.3])
                 data_formatada = pd.to_datetime(row_to_edit[COLUNA_DATA]).strftime('%d/%m/%y') if pd.notna(row_to_edit[COLUNA_DATA]) else "Data Inválida"
                 cols_display_edit[0].markdown(f"**{data_formatada}** - {row_to_edit[COLUNA_TITULO]}"); cols_display_edit[1].markdown(f"R$ {row_to_edit[COLUNA_VALOR]:.2f}"); cols_display_edit[2].markdown(f"*Orig: {row_to_edit.get(COLUNA_FATURA_ORIGEM, 'N/A')}*")
-                cat_options_edit = st.session_state.categorias_editaveis[:]; default_index_cat_edit = 0
-                if pd.notna(current_cat) and current_cat not in cat_options_edit: cat_options_edit.append(current_cat); cat_options_edit.sort()
-                if pd.notna(current_cat) and current_cat in cat_options_edit: default_index_cat_edit = cat_options_edit.index(current_cat)
-                elif "Sem Categoria" in cat_options_edit: default_index_cat_edit = cat_options_edit.index("Sem Categoria")
+                
+                temp_cat_options_edit = cat_options_edit_consumo[:] # Usa a lista já filtrada
+                default_index_cat_edit = 0
+                
+                if pd.notna(current_cat) and current_cat not in temp_cat_options_edit: # Se a categoria atual não estiver na lista (improvável, mas seguro)
+                    temp_cat_options_edit.append(current_cat)
+                    temp_cat_options_edit.sort()
+                
+                if pd.notna(current_cat) and current_cat in temp_cat_options_edit: default_index_cat_edit = temp_cat_options_edit.index(current_cat)
+                elif "Sem Categoria" in temp_cat_options_edit: default_index_cat_edit = temp_cat_options_edit.index("Sem Categoria")
 
-                selectbox_key = f"sel_cat_edit_v14_{edit_id}"; new_cat_sel_widget = cols_display_edit[3].selectbox("Categoria:", cat_options_edit, index=default_index_cat_edit, key=selectbox_key, label_visibility="collapsed")
+                selectbox_key = f"sel_cat_edit_v15_{edit_id}"; # Incremented key
+                new_cat_sel_widget = cols_display_edit[3].selectbox("Categoria:", temp_cat_options_edit, index=default_index_cat_edit, key=selectbox_key, label_visibility="collapsed")
                 categoria_final_escolhida = new_cat_sel_widget
 
                 if categoria_final_escolhida != current_cat:
                     idx_to_update_global = st.session_state.df_processado[st.session_state.df_processado[COLUNA_EDIT_ID] == edit_id].index
                     if not idx_to_update_global.empty:
                         st.session_state.df_processado.loc[idx_to_update_global[0], COLUNA_CATEGORIA] = categoria_final_escolhida
-                        # df_dashboard_master is a copy, so it needs update too if used before rerun
-                        # Or rely on rerun to repopulate df_dashboard_master from st.session_state.df_processado
                         
                         titulo_norm_para_json = normalizar_texto(titulo_original_transacao)
                         if pd.notna(current_cat) and current_cat in st.session_state.categorias_base_memoria:
@@ -346,19 +384,23 @@ if not st.session_state.df_processado.empty:
                         if titulo_norm_para_json not in st.session_state.categorias_base_memoria[categoria_final_escolhida]: st.session_state.categorias_base_memoria[categoria_final_escolhida].append(titulo_norm_para_json)
                         if salvar_categorias_base_para_json(st.session_state.categorias_base_memoria): log_mensagem_app(f"Base atualizada: '{str(titulo_original_transacao)[:30]}...' -> '{categoria_final_escolhida}'.", "success")
                         else: log_mensagem_app(f"ERRO ao salvar base.", "error")
-                        st.rerun() # This rerun will cause df_dashboard_master to be rebuilt from the updated st.session_state.df_processado
+                        st.rerun() 
                 st.markdown("---")
         else:
-            st.info("Nenhum item corresponde aos filtros de edição atuais.")
+            if df_dashboard_master[~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_FIXAS_NAO_EDITAVEIS)].empty:
+                 st.info("Não há transações de consumo para editar. Todas as transações atuais pertencem a categorias financeiras/fixas.")
+            else:
+                 st.info("Nenhum item de consumo corresponde aos filtros de edição atuais.")
     
-    st.session_state.df_processado = df_dashboard_master.copy() # Update session state after potential modifications like date column additions
+    # Importante: Atualizar o df_processado ANTES de usá-lo para filtros e gráficos
+    st.session_state.df_processado = df_dashboard_master.copy()
 
     # --- Filtros Principais do Dashboard ---
     df_dashboard_filtrado_base = df_dashboard_master.copy()
     st.sidebar.subheader("Filtros do Dashboard")
     coluna_periodo_selecionada = 'ciclo_fatura'
     label_periodo_selecionado = "Ciclo da Fatura"
-    
+
     df_para_relatorios = df_dashboard_filtrado_base.copy()
 
     if coluna_periodo_selecionada not in df_dashboard_filtrado_base.columns or df_dashboard_filtrado_base[coluna_periodo_selecionada].isnull().all():
@@ -367,69 +409,63 @@ if not st.session_state.df_processado.empty:
         all_periodos_options = sorted(df_dashboard_filtrado_base[coluna_periodo_selecionada].dropna().unique(), reverse=True)
         all_periodos_for_multiselect = ["Todos"] + all_periodos_options
         
-        # --- Refined default logic for periodos_ciclo_arquivo filter ---
         st.session_state.filtros_sidebar.setdefault('periodos_ciclo_arquivo', ["Todos"])
         current_selection_periodos = st.session_state.filtros_sidebar['periodos_ciclo_arquivo']
-        # Validate current selection against available options
         valid_default_periodos_sidebar = [p for p in current_selection_periodos if p in all_periodos_for_multiselect]
 
-        # If validation results in an empty list, but the original selection was not empty (i.e., it became invalid)
-        # then reset to ["Todos"] if "Todos" is an option. Otherwise, respect the empty selection.
-        if not valid_default_periodos_sidebar and current_selection_periodos: # Original selection was non-empty but became invalid
+        if not valid_default_periodos_sidebar and current_selection_periodos:
             if "Todos" in all_periodos_for_multiselect:
                 valid_default_periodos_sidebar = ["Todos"]
-            # else: it remains empty if "Todos" is somehow not an option (should not happen here)
-        # If current_selection_periodos was already empty, valid_default_periodos_sidebar will also be empty, preserving the empty selection.
 
         selected_periodos = st.sidebar.multiselect(
             f"Ciclo(s) da Fatura (Arquivo):",
             all_periodos_for_multiselect,
             default=valid_default_periodos_sidebar,
-            key="multi_periodo_ciclo_v2_sidebar_refined" # Changed key to ensure fresh state if needed
+            key="multi_periodo_ciclo_v3_sidebar_refined" # Incremented key
         )
         st.session_state.filtros_sidebar['periodos_ciclo_arquivo'] = selected_periodos
-        # --- End refined logic ---
 
         if selected_periodos and "Todos" not in selected_periodos:
             df_para_relatorios = df_para_relatorios[df_para_relatorios[coluna_periodo_selecionada].isin(selected_periodos)]
-        elif not selected_periodos and "Todos" not in selected_periodos : # Empty selection means filter out all
+        elif not selected_periodos and "Todos" not in selected_periodos : 
              df_para_relatorios = pd.DataFrame(columns=df_dashboard_filtrado_base.columns)
-        # If ["Todos"] is selected or if selected_periodos is ["Todos"], no filtering by period is done on df_para_relatorios here.
 
     df_despesas_relatorio_pre_cat_filter = df_para_relatorios[
-        ~df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_NAO_CONSUMO_GERAL) &
+        ~df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_NAO_CONSUMO_GERAL) & # Usa a lista atualizada
         (df_para_relatorios[COLUNA_VALOR] > 0)
     ].copy()
 
     current_unique_cats_despesa_options = sorted(df_despesas_relatorio_pre_cat_filter[COLUNA_CATEGORIA].astype(str).unique().tolist())
     all_cat_despesa_for_multiselect = ["Todos"] + [cat for cat in current_unique_cats_despesa_options if pd.notna(cat) and cat != 'nan']
 
-    # --- Refined default logic for categorias_despesa filter ---
     st.session_state.filtros_sidebar.setdefault('categorias_despesa', ["Todos"])
     current_selection_categorias = st.session_state.filtros_sidebar['categorias_despesa']
     valid_default_cats_despesa_sidebar = [c for c in current_selection_categorias if c in all_cat_despesa_for_multiselect]
 
-    if not valid_default_cats_despesa_sidebar and current_selection_categorias: # Original selection was non-empty but became invalid
+    if not valid_default_cats_despesa_sidebar and current_selection_categorias: 
         if "Todos" in all_cat_despesa_for_multiselect:
             valid_default_cats_despesa_sidebar = ["Todos"]
-    
+
     selected_cats_despesa = st.sidebar.multiselect(
         "Categoria(s) Despesa Consumo:",
         all_cat_despesa_for_multiselect,
         default=valid_default_cats_despesa_sidebar,
-        key="multi_cat_dash_v15_sidebar_refined" # Changed key
+        key="multi_cat_dash_v16_sidebar_refined" # Incremented key
     )
     st.session_state.filtros_sidebar['categorias_despesa'] = selected_cats_despesa
-    # --- End refined logic ---
-    
-    df_despesas_relatorio = df_despesas_relatorio_pre_cat_filter.copy() # Start with period-filtered data
+
+    df_despesas_relatorio = df_despesas_relatorio_pre_cat_filter.copy()
     if selected_cats_despesa and "Todos" not in selected_cats_despesa:
         df_despesas_relatorio = df_despesas_relatorio[df_despesas_relatorio[COLUNA_CATEGORIA].isin(selected_cats_despesa)]
     elif not selected_cats_despesa and "Todos" not in selected_cats_despesa:
         df_despesas_relatorio = pd.DataFrame(columns=df_despesas_relatorio.columns)
-    # If ["Todos"] is selected for categories, df_despesas_relatorio remains as df_despesas_relatorio_pre_cat_filter
 
-    df_encargos_kpi = df_para_relatorios[df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO) & ~df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_AJUSTE_SALDO_DEVEDOR) & (df_para_relatorios[COLUNA_VALOR] > 0)]
+    # Para KPIs de encargos, usamos CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO
+    df_encargos_kpi = df_para_relatorios[
+        df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO) & 
+        # ~df_para_relatorios[COLUNA_CATEGORIA].isin(CATEGORIAS_AJUSTE_SALDO_DEVEDOR) & # Esta linha pode ser redundante se as listas não se sobrepõem
+        (df_para_relatorios[COLUNA_VALOR] > 0)
+    ]
 
     st.header(f"Resumo Financeiro")
     total_gasto_kpi_val, media_diaria_kpi_val = 0.0, 0.0
@@ -450,7 +486,7 @@ if not st.session_state.df_processado.empty:
     st.markdown("---")
 
     df_despesas_historico_plot_g1 = df_dashboard_master[
-        ~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_NAO_CONSUMO_GERAL) &
+        ~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_NAO_CONSUMO_GERAL) & # Usa a lista atualizada
         (df_dashboard_master[COLUNA_VALOR] > 0) &
         pd.notna(df_dashboard_master['mes_ano'])
     ].copy()
@@ -488,7 +524,7 @@ if not st.session_state.df_processado.empty:
 
     df_encargos_historico_detalhes = df_dashboard_master[
         df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_ENCARGOS_FINANCEIROS_NAO_CONSUMO) &
-        ~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_AJUSTE_SALDO_DEVEDOR) &
+        # ~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_AJUSTE_SALDO_DEVEDOR) & # Pode ser redundante
         (df_dashboard_master[COLUNA_VALOR] > 0) &
         pd.notna(df_dashboard_master['mes_ano'])
     ].copy()
@@ -522,7 +558,7 @@ if not st.session_state.df_processado.empty:
                     )
 
     if not df_despesas_relatorio.empty:
-        top_n_cat_g2 = st.slider("Top N Categorias de Consumo (Período Filtrado):", 3, 20, 10, key="slider_top_n_cat_g2_v6")
+        top_n_cat_g2 = st.slider("Top N Categorias de Consumo (Período Filtrado):", 3, 20, 10, key="slider_top_n_cat_g2_v7") # Incremented key
         gastos_por_categoria_plot_g2 = df_despesas_relatorio.groupby(COLUNA_CATEGORIA)[COLUNA_VALOR].sum().reset_index().sort_values(by=COLUNA_VALOR, ascending=False).head(top_n_cat_g2)
         if not gastos_por_categoria_plot_g2.empty:
             fig_dist_categoria_plot_g2 = px.bar(gastos_por_categoria_plot_g2, x=COLUNA_CATEGORIA, y=COLUNA_VALOR, title=f"Top {top_n_cat_g2} Gastos de Consumo por Categoria", text_auto=".2f", labels={COLUNA_VALOR: "Gasto Consumo (R$)"})
@@ -549,20 +585,20 @@ if not st.session_state.df_processado.empty:
                 plot_col2_g3.plotly_chart(fig_dia_mes_plot_g3, use_container_width=True)
 
     if not df_despesas_relatorio.empty:
-        top_n_estab_g4 = st.slider("Top N Estabelecimentos:", 5, 50, 15, key="slider_top_estab_g4_v6")
+        top_n_estab_g4 = st.slider("Top N Estabelecimentos:", 5, 50, 15, key="slider_top_estab_g4_v7") # Incremented key
         gastos_estab_plot_g4 = df_despesas_relatorio.groupby(COLUNA_TITULO)[COLUNA_VALOR].sum().reset_index().sort_values(by=COLUNA_VALOR, ascending=False).head(top_n_estab_g4)
         if not gastos_estab_plot_g4.empty:
             fig_estab_plot_g4 = px.bar(gastos_estab_plot_g4, x=COLUNA_TITULO, y=COLUNA_VALOR, title=f"Top {top_n_estab_g4} Estabelecimentos", text_auto=".2f", labels={COLUNA_VALOR: "Gasto Consumo (R$)"})
             fig_estab_plot_g4.update_layout(xaxis_tickangle=-60, height=500)
             st.plotly_chart(fig_estab_plot_g4, use_container_width=True)
 
-    if not df_despesas_historico_plot_g1.empty:
-        top_n_media_cat_g5 = st.slider("Top N Categorias por Média Mensal:", 3, 20, 10, key="slider_top_n_media_cat_g5_v6")
+    if not df_despesas_historico_plot_g1.empty: # Usa o df_despesas_historico_plot_g1 que já exclui não-consumo
+        top_n_media_cat_g5 = st.slider("Top N Categorias por Média Mensal:", 3, 20, 10, key="slider_top_n_media_cat_g5_v7") # Incremented key
         media_cat_mes_hist_plot_g5 = df_despesas_historico_plot_g1.groupby(['mes_ano', COLUNA_CATEGORIA])[COLUNA_VALOR].sum().unstack(fill_value=0).mean(axis=0).reset_index()
         media_cat_mes_hist_plot_g5.columns = [COLUNA_CATEGORIA, 'media_mensal_gasto']
         media_cat_mes_hist_plot_g5 = media_cat_mes_hist_plot_g5.sort_values(by='media_mensal_gasto', ascending=False).head(top_n_media_cat_g5)
         if not media_cat_mes_hist_plot_g5.empty:
-            fig_media_cat_plot_g5 = px.bar(media_cat_mes_hist_plot_g5, x=COLUNA_CATEGORIA, y='media_mensal_gasto', title=f"Top {top_n_media_cat_g5} Categorias por Média Mensal de Gasto", text_auto=".2f", labels={'media_mensal_gasto':"Média Consumo (R$)"})
+            fig_media_cat_plot_g5 = px.bar(media_cat_mes_hist_plot_g5, x=COLUNA_CATEGORIA, y='media_mensal_gasto', title=f"Top {top_n_media_cat_g5} Categorias por Média Mensal de Gasto (Consumo)", text_auto=".2f", labels={'media_mensal_gasto':"Média Consumo (R$)"}) # Adicionado (Consumo) ao título
             fig_media_cat_plot_g5.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig_media_cat_plot_g5, use_container_width=True)
 
@@ -572,21 +608,17 @@ if not st.session_state.df_processado.empty:
     if 'ciclo_fatura' in df_dashboard_master.columns and df_dashboard_master['ciclo_fatura'].notna().any():
         lista_ciclos_disponiveis_consulta = sorted(df_dashboard_master['ciclo_fatura'].dropna().unique(), reverse=True)
 
-        # --- Refined default logic for consulta_ciclo_multiselect ---
-        st.session_state.setdefault('ciclos_consulta_selecionados', []) # Ensure it exists, default to empty list
+        st.session_state.setdefault('ciclos_consulta_selecionados', []) 
         current_selection_ciclos_consulta = st.session_state.get('ciclos_consulta_selecionados', [])
-        # Validate against available options. An empty list is a valid default here.
         valid_default_ciclos_consulta = [c for c in current_selection_ciclos_consulta if c in lista_ciclos_disponiveis_consulta]
-        # No reset to "Todos" logic here, as an empty selection is perfectly fine.
 
         ciclos_selecionados_agora = st.multiselect(
             "Selecione o(s) Ciclo(s) da Fatura para ver os detalhes:",
             options=lista_ciclos_disponiveis_consulta,
-            default=valid_default_ciclos_consulta, # This will be empty if previous selection is invalid or was empty
-            key="consulta_ciclo_multiselect_v2_refined" # Changed key
+            default=valid_default_ciclos_consulta, 
+            key="consulta_ciclo_multiselect_v3_refined" # Incremented key
         )
         st.session_state.ciclos_consulta_selecionados = ciclos_selecionados_agora
-        # --- End refined logic ---
 
         if ciclos_selecionados_agora:
             df_consulta_fatura = df_dashboard_master[
@@ -602,22 +634,20 @@ if not st.session_state.df_processado.empty:
                 }
                 df_consulta_exibir = df_consulta_fatura[[key for key in colunas_exibir if key in df_consulta_fatura.columns]].rename(columns=colunas_exibir)
 
-                if 'Data' in df_consulta_exibir.columns: # Ensure 'Data' column exists before formatting
+                if 'Data' in df_consulta_exibir.columns: 
                     df_consulta_exibir['Data'] = pd.to_datetime(df_consulta_exibir['Data']).dt.strftime('%d/%m/%Y')
-                
+            
                 format_dict = {'Valor (R$)': "R$ {:,.2f}"}
-                
-                # Ensure 'Ciclo Fatura' and 'Data' exist before sorting
+            
                 sort_by_cols = []
                 if 'Ciclo Fatura' in df_consulta_exibir.columns: sort_by_cols.append('Ciclo Fatura')
                 if 'Data' in df_consulta_exibir.columns: sort_by_cols.append('Data')
-                
+            
                 if sort_by_cols:
                     df_consulta_exibir.sort_values(by=sort_by_cols, ascending=[True, True], inplace=True)
 
-
                 st.dataframe(
-                    df_consulta_exibir.style.format(format_dict, na_rep='-'), # Added na_rep
+                    df_consulta_exibir.style.format(format_dict, na_rep='-'), 
                     use_container_width=True,
                     hide_index=True
                 )
@@ -631,9 +661,9 @@ if not st.session_state.df_processado.empty:
 
     st.markdown("---"); st.header("🤝 Contribua para Melhorar a Categorização"); st.markdown("""A categorização automática pode não ser perfeita para todos os estabelecimentos. Suas edições manuais são salvas localmente no arquivo `Categorias.json` e ajudam a refinar o sistema para você.
     Se desejar, você pode compartilhar seu arquivo de categorias para ajudar a aprimorar a base de conhecimento geral do categorizador para todos os usuários!""")
-    if st.button("Quero Contribuir com Minhas Categorizações!", key="btn_contribuir_v6"):
+    if st.button("Quero Contribuir com Minhas Categorizações!", key="btn_contribuir_v7"): # Incremented key
         categorias_base_para_contribuir_str = json.dumps(st.session_state.categorias_base_memoria, indent=4, ensure_ascii=False)
-        st.download_button(label="1. Baixar meu Arquivo de Categorias (.json)", data=categorias_base_para_contribuir_str, file_name=f"minhas_categorias_base_{datetime.now().strftime('%Y%m%d')}.json", mime="application/json", key="download_contrib_categorias_v6")
+        st.download_button(label="1. Baixar meu Arquivo de Categorias (.json)", data=categorias_base_para_contribuir_str, file_name=f"minhas_categorias_base_{datetime.now().strftime('%Y%m%d')}.json", mime="application/json", key="download_contrib_categorias_v7") # Incremented key
         st.markdown("""2. Após baixar, envie para: **jcaxavier2@gmail.com** com o assunto "Contribuição - Categorias Dashboard Faturas".
         Sua contribuição é anônima em relação aos seus dados de fatura, pois apenas o mapeamento de NOMES DE ESTABELECIMENTOS para CATEGORIAS é compartilhado (armazenado no `Categorias.json`). Nenhuma informação pessoal ou valor de transação é incluído neste arquivo.""")
         mailto_link = f"mailto:jcaxavier2@gmail.com?subject=Contribuição%20-%20Categorias%20Dashboard%20Faturas&body=Olá,%0A%0ASegue%20meu%20arquivo%20de%20categorias%20(Categorias.json)%20em%20anexo.%0A%0ASe%20possível,%20informe%20o%20contexto%20de%20uso%20(ex:%20uso%20pessoal,%20teste,%20região%20predominante%20das%20compras%20se%20relevante%20para%20estabelecimentos%20locais).%0A%0AObrigado!"

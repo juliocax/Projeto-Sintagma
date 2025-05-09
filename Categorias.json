@@ -139,7 +139,8 @@
         "Encomenda",
         "Envio",
         "Despacho",
-        "Remessa"
+        "Remessa",
+        "ifd*aurea helena albuq"
     ],
     "Educação": [
         "Escola",
@@ -258,7 +259,8 @@
         "cachorro quente do ze",
         "epitacio pessoa drive",
         "mm burguer",
-        "79 hamburgueria"
+        "79 hamburgueria",
+        "batatudobatata"
     ],
     "Hospedagem": [
         "Hotel",
@@ -328,7 +330,9 @@
         "maria eduarda frança de andrade",
         "fabiano alves da silva",
         "edilene de oliveira rique",
-        "rita de cassia da conceicao"
+        "rita de cassia da conceicao",
+        "pag*lilianedasilva",
+        "francisco pedro da sil"
     ],
     "Locação de Veículos": [
         "Locadora",
@@ -615,7 +619,9 @@
         "Cleaning",
         "Beauty",
         "Salon",
-        "Cuidados"
+        "Cuidados",
+        "bicho bonito comercio",
+        "cobasi cabedelo"
     ],
     "Supermercados": [
         "Supermercado",
@@ -701,7 +707,8 @@
         "Revendedora",
         "Parts",
         "posto",
-        "lavajatopaiefilho"
+        "lavajatopaiefilho",
+        "ps comercial de combus"
     ],
     "Viagem": [
         "Turismo",
@@ -719,29 +726,52 @@
         "Reserva",
         "Destino"
     ],
+    "Pagamento de Fatura": [
+        "Pagamento recebido",
+        "pgto fatura",
+        "pagto cartao" 
+    ],
+    "Encargos de Parcelamento Fatura": [
+        "parcelamento",
+        "enc de parcelamento fatura",
+        "enc parcel fatura"
+    ],
+    "Encerramento de dívida": [
+        "encerramento de divida",
+        "liquidacao de divida"
+    ],
+    "IOF de atraso": [ 
+        "iof de atraso"
+    ],
+    "Juros de dívida encerrada": [ 
+        "juros de dívida encerrada",
+        "juros divida encerrada"
+    ],
+    "Multa de atraso": [ 
+        "multa de atraso" 
+    ],
+    "Juros e Taxas Diversas": [ 
+        "juros de atraso",
+        "credito rotativo", 
+        "juros remuneratorios",
+        "iof rotativo"
+    ],
+    "Estorno": [ 
+        "estorno",
+        "credito de",
+        "estorno de juros da divida encerrada",
+        "reversao"
+    ],
+    "Ajuste Parcelamento Fatura": [
+        "ajuste parcelamento fatura"
+    ],
     "Saldo em atraso": [
         "saldo em atraso"
     ],
-    "Encargos de Parcelamento Fatura": [
-        "parcelamento"
-    ],
-    "IOF de atraso": [
-        "iof de atraso"
-    ],
-    "Multa de atraso": [
-        "multa de atraso"
-    ],
-    "Ajuste Parcelamento Fatura": [],
-    "Juros de dívida encerrada": [
-        "juros de dívida encerrada"
-    ],
-    "Encerramento de dívida": [
-        "encerramento de dívida"
-    ],
+    "Taxa": [
+        "iof" 
+    ], 
     "Não Classificado": [],
     "Não Informado": [],
-    "Sem Categoria/Pix Credito": [],
-    "Taxa": [
-        "iof"
-    ]
+    "Sem Categoria/Pix Credito": []
 }

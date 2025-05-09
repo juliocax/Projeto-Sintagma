@@ -1,4 +1,4 @@
 Faturas/
 .venv/
-.csv
+*.csv
 __pycache__/
