@@ -1,70 +1,22 @@
 {
     "Administração Pública": [
-        "Prefeitura",
-        "Governo",
-        "Secretaria",
-        "Ministério",
-        "Municipal",
-        "Estadual",
-        "Federal",
-        "Autarquia",
-        "Tribunal",
-        "Câmara",
-        "Assembleia",
-        "Procuradoria",
-        "INSS",
-        "Receita Federal",
-        "Detran",
-        "Instituto"
+        "Prefeitura"
     ],
     "Agropecuária": [
-        "Fazenda",
-        "Agro",
-        "Rural",
-        "Sementes",
-        "Agropecuária",
-        "Agrícola",
-        "Granja",
-        "Sítio",
-        "Cooperativa",
-        "Pecuária",
-        "Agricultura",
-        "Lavoura",
-        "Cultivo",
-        "Horta",
-        "Produtor Rural",
-        "Criação"
+        "Fazenda"
     ],
     "Arte": [
         "Galeria",
-        "Museu",
-        "Exposição",
-        "Ateliê",
-        "Pintura",
-        "Escultura",
-        "Artista",
-        "Criativo",
-        "Arte Contemporânea",
-        "Studio",
-        "Obra",
-        "Artístico",
-        "Cultural",
-        "Exhibition",
-        "Gallery",
-        "Artes Plásticas"
+        "Museu"
     ],
     "Atacadista": [
         "Atacado",
-        "Distribuidor",
-        "Wholesaler",
-        "Distribuidora",
         "Atacadão",
         "Makro",
         "Assaí",
         "Sam's Club",
         "Tenda",
         "Wholesale",
-        "Distribuição",
         "Bulk",
         "Cash & Carry"
     ],
@@ -76,18 +28,12 @@
         "Choperia",
         "Cervejaria",
         "Drinks",
-        "Balada",
-        "Happy Hour",
-        "Bistrô",
-        "Lounge",
-        "Adega",
-        "Bebidas",
-        "Petiscos",
-        "Noturno",
-        "Boate",
-        "videoke do napoleao",
+        "videoke",
         "recanto jampa",
-        "zimbro"
+        "zimbro",
+        "mano bebidas",
+        "quiosque do joilton",
+        "skina do mar"
     ],
     "Comércio Varejista": [
         "Loja",
@@ -97,19 +43,7 @@
     ],
     "Construção": [
         "Construtora",
-        "Engenharia",
-        "Obra",
-        "Empreiteira",
-        "Material",
-        "Reforma",
-        "Incorporadora",
-        "Civil",
-        "Edificação",
-        "Arquitetura",
-        "Construções",
-        "Predial",
-        "Estrutura",
-        "Projeto"
+        "Engenharia"
     ],
     "Delivery": [
         "Entrega",
@@ -117,7 +51,8 @@
         "Rappi",
         "iFood",
         "Frete",
-        "Encomenda"
+        "Encomenda",
+        "ifd*aurea helena albuq"
     ],
     "Educação": [
         "Escola",
@@ -128,7 +63,8 @@
         "Educacional",
         "Ensino",
         "Professor",
-        "alura"
+        "alura",
+        "mp *j3acopiadora"
     ],
     "Eletronicos": [
         "Eletrônica",
@@ -152,7 +88,6 @@
         "apple",
         "sony",
         "playstation"
-
     ],
     "Entretenimento": [
         "Cinema",
@@ -164,7 +99,9 @@
         "Ingresso",
         "Bilheteria",
         "Entertainment",
-        "grao mestre luderia"
+        "luderia",
+        "amazonprimebr",
+        "fundacao espaco cultural da paraiba funesc"
     ],
     "Esportes": [
         "Academia",
@@ -206,6 +143,7 @@
         "Subway",
         "KFC",
         "Bob's",
+        "Bobs",
         "Habib's",
         "Fast Food",
         "Lanches",
@@ -218,7 +156,6 @@
         "Takeaway",
         "Popeyes",
         "joao pessoa drive",
-        "bobs",
         "fat guys joao pessoa",
         "filial plk mangabeira",
         "cachorro quente do ze",
@@ -243,36 +180,11 @@
         "Suíte"
     ],
     "Imobiliário": [
-        "Imobiliária",
-        "Imóveis",
-        "Corretor",
-        "Casa",
-        "Apartamento",
-        "Real Estate",
-        "Propriedade",
-        "Incorporadora",
-        "Loteamento",
-        "Construtura",
-        "Empreendimento",
-        "Condomínio",
-        "Locação",
-        "Venda"
+        "Imobiliária"
     ],
     "Indústria": [
         "Fábrica",
-        "Indústria",
-        "Produção",
-        "Manufatura",
-        "Industrial",
-        "Transformação",
-        "Factory",
-        "Planta",
-        "Fabricante",
-        "Metalúrgica",
-        "Processamento",
-        "Montagem",
-        "Produtivo",
-        "Linha"
+        "Indústria"
     ],
     "Lanchonetes": [
         "Lanchonete",
@@ -289,45 +201,17 @@
         "Delícias",
         "Expresso",
         "Petiscos",
-        "nadjamendes",
-        "felicidade campos cavalcante gomes",
-        "maria eduarda frança de andrade"
+        "etiene dias da silva"
     ],
     "Locação de Veículos": [
         "Locadora",
-        "Aluguel",
         "Rent",
-        "Car",
-        "Rental",
-        "Veículo",
-        "Carro",
-        "Automóvel",
-        "Leasing",
-        "Locação",
-        "Concessionária",
-        "Frota",
-        "Transportes",
-        "Locar"
+        "Car"
     ],
     "Logística": [
-        "Logística",
-        "Transporte",
-        "Entrega",
-        "Frete",
-        "Carga",
-        "Expedição",
-        "Despacho",
-        "Armazenagem",
-        "Shipping",
-        "Delivery",
-        "Courier",
-        "Envio",
-        "Remessa",
-        "Distribuição"
+        "Logística"
     ],
     "Lojas de Roupa e Acessórios": [
-        "Loja",
-        "Boutique",
         "Moda",
         "Fashion",
         "Roupas",
@@ -342,36 +226,11 @@
         "Outlet"
     ],
     "Meio Ambiente": [
-        "Ambiental",
-        "Ecológico",
-        "Sustentável",
-        "Reciclagem",
-        "Verde",
-        "Eco",
-        "Natural",
-        "Orgânico",
-        "Conservação",
-        "Reflorestamento",
-        "Preservação",
-        "Green",
-        "Environmental",
-        "Sustentabilidade"
+        "Ambiental"
     ],
     "Organizações Associativas e Religiosas": [
         "Associação",
-        "Igreja",
-        "Templo",
-        "Sindicato",
-        "Fundação",
-        "ONG",
-        "Organização",
-        "Cooperativa",
-        "Religioso",
-        "Instituição",
-        "Pastoral",
-        "Paróquia",
-        "Comunidade",
-        "Culto"
+        "Igreja"
     ],
     "Padaria": [
         "Padaria",
@@ -402,7 +261,6 @@
         "Garden",
         "Decoração",
         "Landscape",
-        "Verde",
         "Ornamentação",
         "Viveiro",
         "Floricultura",
@@ -422,7 +280,6 @@
         "Chef",
         "Menu",
         "Refeição",
-        "Bistro",
         "Trattoria",
         "giardinomaree",
         "damianabozanade",
@@ -499,21 +356,19 @@
         "Suporte",
         "Expediente"
     ],
-    "Serviços de alojamento de animais domesticos": [
+    "Serviços para animais domesticos": [
         "Pet",
-        "Hotel",
         "Canil",
         "Gatil",
-        "Creche",
-        "Hospedagem",
         "Animal",
-        "Pensão",
         "Dog",
         "Cat",
-        "Boarding",
-        "Daycare",
-        "Cuidados",
-        "Pet Sitting"
+        "Pet Sitting",
+        "Pet Care",
+        "Pet Shop",
+        "Cobasi",
+        "bicho bonito comercio",
+        "casa dos criadores"
     ],
     "Serviços de Consultoria": [
         "Consultoria",
@@ -534,17 +389,13 @@
     "Serviços de Software": [
         "Software",
         "Tecnologia",
-        "Sistema",
-        "TI",
         "Informática",
-        "Development",
         "Programação",
         "Digital",
         "Web",
         "App",
         "Tech",
         "Solução",
-        "Desenvolvimento",
         "Computação",
         "google one"
     ],
@@ -579,8 +430,7 @@
         "Beauty",
         "Salon",
         "Cuidados",
-        "bicho bonito comercio",
-        "cobasi cabedelo"
+        "bem gas"
     ],
     "Supermercados": [
         "Supermercado",
@@ -599,7 +449,8 @@
         "Varejo",
         "atacadao 074 as",
         "assai atacadista",
-        "mateus comercio de ali"
+        "mateus comercio de ali",
+        "rede da economia"
     ],
     "Telecomunicações": [
         "Telecom",
@@ -615,7 +466,9 @@
         "Network",
         "Wireless",
         "Link",
-        "Dados"
+        "Dados",
+        "tim s a",
+        "tim*tim"
     ],
     "Transportes": [
         "Transporte",
@@ -714,7 +567,9 @@
     "Taxa": [
         "iof"
     ],
-    "Não Classificado": [],
+    "Não Classificado": [
+        "outros"
+    ],
     "Não Informado": [],
     "Sem Categoria/Pix Credito": []
 }

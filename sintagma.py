@@ -15,7 +15,7 @@ from categorizador import (
     carregar_categorias_base_do_json,
     salvar_categorias_base_para_json,
     CAMINHO_CATEGORIAS_BASE_JSON,
-    COLUNA_DATA, COLUNA_TITULO, COLUNA_VALOR, COLUNA_CATEGORIA,
+    COLUNA_DATA, COLUNA_TITULO, COLUNA_VALOR, COLUNA_CATEGORIA, COLUNA_ID,
     COLUNA_PARCELA_ATUAL, COLUNA_TOTAL_PARCELAS, COLUNA_FATURA_ORIGEM,
     COLUNA_EDIT_ID, CAMINHO_PRINCIPAL_PROCESSADO_DEFAULT_PREFIXO,
     normalizar_texto
@@ -51,9 +51,9 @@ CATEGORIAS_FINANCEIRAS_FIXAS = sorted(list(set(
 )))
 
 CATEGORIAS_SISTEMA_ERRO_SEM_CATEGORIA = [
-    "Sem Categoria", "Erro Fuzzy Match", "Sem Categoria (Fuzzy - Mapa Principal)",
-    "Sem Categoria (Lookup Principal Vazio)", "Sem Categoria (Título Vazio)", "Sem Categoria/Pix Credito"
+    "Sem Categoria/Pix Credito"
 ]
+
 
 CATEGORIAS_ESSENCIAIS_PARA_DROPDOWNS = sorted(list(set(
     CATEGORIAS_FINANCEIRAS_FIXAS +
@@ -81,15 +81,18 @@ def log_mensagem_app(mensagem: str, tipo: str = 'info'):
         st.session_state.log_messages = st.session_state.log_messages[-MAX_LOG_MESSAGES:]
 
 def _atualizar_lista_categorias_editaveis():
-    base_memoria = st.session_state.categorias_base_memoria
+    base_memoria = st.session_state.get('categorias_base_memoria', {})
     if not isinstance(base_memoria, dict):
-        base_memoria = {}
+        log_mensagem_app("categorias_base_memoria não era um dicionário. Reicializando.", "warning")
+        base_memoria = carregar_categorias_base_do_json() 
+        if not isinstance(base_memoria, dict):
+             base_memoria = {}
+        st.session_state.categorias_base_memoria = base_memoria
+
+    lista_cats_memoria = list(base_memoria.keys())
     
-    lista_cats = sorted(list(base_memoria.keys()))
-    for cat_essencial in CATEGORIAS_ESSENCIAIS_PARA_DROPDOWNS:
-        if cat_essencial not in lista_cats:
-            lista_cats.append(cat_essencial)
-    st.session_state.categorias_editaveis = sorted(list(set(lista_cats)))
+    st.session_state.categorias_editaveis = sorted(list(set(lista_cats_memoria + CATEGORIAS_ESSENCIAIS_PARA_DROPDOWNS)))
+
 
 def inicializar_session_state():
     defaults = {
@@ -113,7 +116,7 @@ def inicializar_session_state():
     st.session_state.filtros_sidebar.setdefault('periodos_ciclo_arquivo', ["Todos"])
     st.session_state.filtros_sidebar.setdefault('categorias_despesa', ["Todos"])
     
-    _atualizar_lista_categorias_editaveis()
+    _atualizar_lista_categorias_editaveis() 
 
 def gerar_dados_sessao_para_salvar() -> str:
     df_para_salvar = st.session_state.df_processado.copy()
@@ -129,7 +132,7 @@ def gerar_dados_sessao_para_salvar() -> str:
         'estado_cnpj_selecionado': st.session_state.estado_cnpj_selecionado,
         'municipio_cnpj_selecionado': st.session_state.municipio_cnpj_selecionado,
         'filtros_sidebar': st.session_state.filtros_sidebar,
-        'nomes_arquivos_faturas_ja_processados': list(st.session_state.nomes_arquivos_faturas_ja_processados),
+        'nomes_arquivos_faturas_ja_processados': list(st.session_state.nomes_arquivos_faturas_ja_processados), 
         'edit_search_term': st.session_state.edit_search_term,
         'edit_category_filter': st.session_state.edit_category_filter,
         'edit_current_page': st.session_state.edit_current_page,
@@ -148,7 +151,7 @@ def carregar_dados_sessao_do_arquivo(uploaded_file_content: str):
             if not st.session_state.df_processado.empty:
                 if COLUNA_DATA in st.session_state.df_processado.columns:
                     st.session_state.df_processado[COLUNA_DATA] = pd.to_datetime(st.session_state.df_processado[COLUNA_DATA], errors='coerce')
-                if COLUNA_EDIT_ID not in st.session_state.df_processado.columns: # Ensure edit ID exists
+                if COLUNA_EDIT_ID not in st.session_state.df_processado.columns:
                     st.session_state.df_processado.reset_index(drop=True, inplace=True)
                     st.session_state.df_processado[COLUNA_EDIT_ID] = st.session_state.df_processado.index
         else:
@@ -176,11 +179,11 @@ def carregar_dados_sessao_do_arquivo(uploaded_file_content: str):
         else:
             st.session_state.categorias_base_memoria = carregar_categorias_base_do_json()
     
-        _atualizar_lista_categorias_editaveis()
+        _atualizar_lista_categorias_editaveis() 
     
         st.sidebar.success("Progresso carregado!")
         log_mensagem_app(f"Sessão carregada (salva em {estado_carregado.get('timestamp_salvo', 'data desconhecida')}).", "success")
-        st.session_state.arquivo_sessao_uploader_key += 1
+        st.session_state.arquivo_sessao_uploader_key += 1 
         st.rerun()
     except Exception as e:
         st.sidebar.error(f"Erro ao carregar sessão: {e}")
@@ -190,9 +193,9 @@ def preparar_dataframe_dashboard(df: pd.DataFrame) -> pd.DataFrame:
     df_out = df.copy()
     if not df_out.empty and COLUNA_DATA in df_out.columns:
         df_out[COLUNA_DATA] = pd.to_datetime(df_out[COLUNA_DATA], errors='coerce')
-        df_out.dropna(subset=[COLUNA_DATA], inplace=True) # Remove rows where date conversion failed
+        df_out.dropna(subset=[COLUNA_DATA], inplace=True)
 
-        if not df_out.empty: 
+        if not df_out.empty:
             date_col_series = df_out[COLUNA_DATA].dt
             
             df_out['mes_ano'] = date_col_series.to_period('M').astype(str)
@@ -203,17 +206,17 @@ def preparar_dataframe_dashboard(df: pd.DataFrame) -> pd.DataFrame:
 
     if COLUNA_FATURA_ORIGEM in df_out.columns:
         df_out['ciclo_fatura'] = df_out[COLUNA_FATURA_ORIGEM].apply(extrair_ciclo_do_nome_arquivo)
-    elif 'ciclo_fatura' not in df_out.columns: # If column doesn't exist at all
-        df_out['ciclo_fatura'] = "Sem Origem Definida"
+    elif 'ciclo_fatura' not in df_out.columns: 
+        df_out['ciclo_fatura'] = "Sem Origem Definida" 
         
     return df_out
 
 inicializar_session_state()
 
 try:
-    col1_header, col2_header = st.columns([2, 2])
+    col1_header, col2_header = st.columns([2, 2]) 
     with col1_header:
-        st.image(NOME_ARQUIVO_IMAGEM, use_container_width=True)
+        st.image(NOME_ARQUIVO_IMAGEM, use_container_width=True) 
     with col2_header:
         st.title("Syn(tagmᵃ) Visualizador de uso do Cartão de Crédito")
 except FileNotFoundError:
@@ -235,7 +238,7 @@ uploaded_files = st.sidebar.file_uploader(
 )
 
 st.sidebar.subheader("2. Tipo de Categorização")
-tipo_cat_selecionada_key = "radio_tipo_cat_v16"
+tipo_cat_selecionada_key = "radio_tipo_cat_v16" 
 st.session_state.tipo_categorizacao_selecionada = st.sidebar.radio(
     "Método:",
     ["Genérica (Base Editável)", "Específica (Base Editável + CNPJ Gov)"],
@@ -243,11 +246,13 @@ st.session_state.tipo_categorizacao_selecionada = st.sidebar.radio(
     key=tipo_cat_selecionada_key
 )
 usar_cat_especifica_bool = st.session_state.tipo_categorizacao_selecionada.startswith("Específica")
-caminho_arquivo_estab_final = None
+caminho_arquivo_estab_final = None 
 
 if usar_cat_especifica_bool:
     st.sidebar.subheader("3. Base de Dados CNPJ")
-    opcoes_locais_cnpj = {"Paraíba": {"Joao_Pessoa": "João Pessoa"}}
+    opcoes_locais_cnpj = {
+        "Paraíba": {"Joao_Pessoa": "João Pessoa"}
+    }
     lista_estados_disponiveis = list(opcoes_locais_cnpj.keys())
     
     if st.session_state.estado_cnpj_selecionado not in lista_estados_disponiveis and lista_estados_disponiveis:
@@ -261,26 +266,27 @@ if usar_cat_especifica_bool:
     )
     
     municipios_do_estado_map = opcoes_locais_cnpj.get(st.session_state.estado_cnpj_selecionado, {})
-    lista_municipios_display = list(municipios_do_estado_map.values())
-    
+    lista_municipios_display = list(municipios_do_estado_map.values()) 
+
     idx_municipio_selecionado = 0
-    municipio_selecionado_display = st.session_state.municipio_cnpj_selecionado
+    municipio_selecionado_display = st.session_state.municipio_cnpj_selecionado 
     if municipio_selecionado_display in lista_municipios_display:
         idx_municipio_selecionado = lista_municipios_display.index(municipio_selecionado_display)
-    elif lista_municipios_display:
-        municipio_selecionado_display = lista_municipios_display[0]
+    elif lista_municipios_display: 
+        municipio_selecionado_display = lista_municipios_display[0] 
         
     st.session_state.municipio_cnpj_selecionado = st.sidebar.selectbox(
         "Município:",
         lista_municipios_display,
         index=idx_municipio_selecionado,
         key="select_municipio_cnpj_v16",
-        disabled=not bool(lista_municipios_display)
+        disabled=not bool(lista_municipios_display) 
     )
     
     if st.session_state.estado_cnpj_selecionado and st.session_state.municipio_cnpj_selecionado:
-        uf_map = {"Paraíba": "PB"}
+        uf_map = {"Paraíba": "PB", "Sao_Paulo": "SP"} 
         uf_sigla = uf_map.get(st.session_state.estado_cnpj_selecionado, st.session_state.estado_cnpj_selecionado.upper()[:2])
+        
         nome_arquivo_municipio_key = next((k for k, v in municipios_do_estado_map.items() if v == st.session_state.municipio_cnpj_selecionado), None)
         
         if nome_arquivo_municipio_key:
@@ -289,7 +295,7 @@ if usar_cat_especifica_bool:
                 st.sidebar.caption(f"Usará base: {os.path.basename(caminho_arquivo_estab_final)}")
             else:
                 st.sidebar.warning(f"Arquivo CNPJ não encontrado: {os.path.basename(caminho_arquivo_estab_final)}")
-                caminho_arquivo_estab_final = None
+                caminho_arquivo_estab_final = None 
         else:
             st.sidebar.warning("Não foi possível determinar o arquivo da base CNPJ.")
             caminho_arquivo_estab_final = None
@@ -309,7 +315,7 @@ limpar_dados_btn_clicked = col_btn2.button("🧹 Limpar Dados", use_container_wi
 st.sidebar.subheader("Mensagens do Processo")
 log_placeholder = st.sidebar.empty()
 with log_placeholder.container():
-    for msg in reversed(st.session_state.get('log_messages', [])):
+    for msg in reversed(st.session_state.get('log_messages', [])): 
         st.caption(msg)
 
 st.sidebar.subheader("5. Sessão")
@@ -321,12 +327,12 @@ st.sidebar.download_button(
     mime="application/json",
     use_container_width=True,
     disabled=st.session_state.df_processado.empty,
-    key="download_sessao_btn_v11"
+    key="download_sessao_btn_v11" 
 )
 arquivo_sessao_carregado = st.sidebar.file_uploader(
     "📂 Carregar Progresso (.json):",
     type=["json"],
-    key=f"file_uploader_sessao_key_{st.session_state.arquivo_sessao_uploader_key}_v11"
+    key=f"file_uploader_sessao_key_{st.session_state.arquivo_sessao_uploader_key}_v11" 
 )
 
 if arquivo_sessao_carregado is not None:
@@ -340,10 +346,10 @@ if limpar_dados_btn_clicked:
     st.session_state.edit_search_term = ""
     st.session_state.edit_category_filter = "Todas"
     st.session_state.edit_current_page = 1
-    st.session_state.arquivo_sessao_uploader_key += 1
-    st.session_state.log_messages = ["Dados e filtros do dashboard limpos."]
+    st.session_state.arquivo_sessao_uploader_key += 1 
+    st.session_state.log_messages = ["Dados e filtros do dashboard limpos."] 
     st.session_state.categorias_base_memoria = carregar_categorias_base_do_json()
-    st.session_state.ciclos_consulta_selecionados = []
+    st.session_state.ciclos_consulta_selecionados = [] 
     _atualizar_lista_categorias_editaveis()
     st.rerun()
 
@@ -367,10 +373,8 @@ if processar_btn_clicked and uploaded_files:
         )
 
     elif not st.session_state.df_processado.empty and novos_nomes_arquivos.issubset(st.session_state.nomes_arquivos_faturas_ja_processados):
-
-        log_mensagem_app("Nenhum arquivo novo para processar. Exibindo dados atuais.", "info")
-    elif st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files:
-        log_mensagem_app(f"Arquivos parecem já processados. Reprocessando todos {len(uploaded_files)}.", "warning")
+        log_mensagem_app("Todos os arquivos já processados anteriormente. Recategorizando com configurações atuais...", "info")
+        
         st.session_state.nomes_arquivos_faturas_ja_processados = set() 
         df_novas_faturas = processar_faturas(
             uploaded_files, 
@@ -378,19 +382,40 @@ if processar_btn_clicked and uploaded_files:
             caminho_arquivo_estab_final,
             log_placeholder
         )
+        if not df_novas_faturas.empty:
+             st.session_state.df_processado = pd.DataFrame() 
+
+    elif st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files:
+        log_mensagem_app(f"Arquivos parecem já constar como processados, mas não há dados. Reprocessando todos os {len(uploaded_files)} arquivos selecionados.", "warning")
+        st.session_state.nomes_arquivos_faturas_ja_processados = set()
+        df_novas_faturas = processar_faturas(
+            uploaded_files,
+            usar_cat_especifica_bool,
+            caminho_arquivo_estab_final,
+            log_placeholder
+        )
+
 
     if not df_novas_faturas.empty:
         df_novas_faturas[COLUNA_DATA] = pd.to_datetime(df_novas_faturas[COLUNA_DATA], errors='coerce')
         df_novas_faturas.dropna(subset=[COLUNA_DATA], inplace=True)
         
         if COLUNA_FATURA_ORIGEM not in df_novas_faturas.columns:
-            log_mensagem_app(f"Coluna '{COLUNA_FATURA_ORIGEM}' não encontrada nos novos dados. Ciclo não será extraído.", "warning")
+            log_mensagem_app(f"ALERTA: Coluna '{COLUNA_FATURA_ORIGEM}' não encontrada nos novos dados processados. Isso pode afetar a identificação de duplicatas e o rastreamento da origem.", "error")
         
         df_existente = st.session_state.df_processado.copy() if not st.session_state.df_processado.empty else pd.DataFrame()
-        df_combinado = pd.concat([df_existente, df_novas_faturas], ignore_index=True)
+        
+        if novos_nomes_arquivos.issubset(st.session_state.nomes_arquivos_faturas_ja_processados) and not arquivos_para_processar_agora:
+             df_combinado = df_novas_faturas.copy()
+        else:
+            df_combinado = pd.concat([df_existente, df_novas_faturas], ignore_index=True)
         
         subset_duplicatas = [COLUNA_TITULO, COLUNA_DATA, COLUNA_VALOR]
-        if COLUNA_FATURA_ORIGEM in df_combinado.columns:
+        if COLUNA_ID in df_combinado.columns: 
+            subset_duplicatas = [COLUNA_ID]
+            if df_combinado[COLUNA_ID].isnull().any():
+                 log_mensagem_app("Usando ID Nubank para remover duplicatas. IDs ausentes (NaN) podem não ser tratados idealmente.", "warning")
+        elif COLUNA_FATURA_ORIGEM in df_combinado.columns:
             subset_duplicatas.append(COLUNA_FATURA_ORIGEM)
         
         subset_duplicatas_existentes = [col for col in subset_duplicatas if col in df_combinado.columns]
@@ -402,18 +427,20 @@ if processar_btn_clicked and uploaded_files:
         
         st.session_state.df_processado = df_combinado.copy()
         
-        nomes_faturas_processadas_novas = set(df_novas_faturas[COLUNA_FATURA_ORIGEM].unique()) if COLUNA_FATURA_ORIGEM in df_novas_faturas else set()
-
-        if st.session_state.df_processado.empty and not arquivos_para_processar_agora and uploaded_files:
+        nomes_faturas_processadas_novas = set()
+        if COLUNA_FATURA_ORIGEM in df_novas_faturas.columns:
+             nomes_faturas_processadas_novas = set(df_novas_faturas[COLUNA_FATURA_ORIGEM].unique())
+        
+        if not arquivos_para_processar_agora and uploaded_files:
             for f_up in uploaded_files:
                  st.session_state.nomes_arquivos_faturas_ja_processados.add(f_up.name)
         else: 
-            for f_proc in arquivos_para_processar_agora:
-                if f_proc.name in nomes_faturas_processadas_novas or not nomes_faturas_processadas_novas: 
-                    st.session_state.nomes_arquivos_faturas_ja_processados.add(f_proc.name)
+            for f_proc_obj in arquivos_para_processar_agora:
+                if f_proc_obj.name in nomes_faturas_processadas_novas or not nomes_faturas_processadas_novas:
+                    st.session_state.nomes_arquivos_faturas_ja_processados.add(f_proc_obj.name)
         st.rerun()
     elif uploaded_files and df_novas_faturas.empty and arquivos_para_processar_agora:
-        log_mensagem_app("Processamento dos novos arquivos resultou em dados vazios.", "error")
+        log_mensagem_app("Processamento dos novos arquivos resultou em dados vazios. Verifique o formato dos CSVs ou as mensagens de erro anteriores.", "error")
 
 
 if not st.session_state.df_processado.empty:
@@ -424,7 +451,7 @@ if not st.session_state.df_processado.empty:
         st.session_state.edit_search_term = col_edit_filt1.text_input(
             "Buscar Título (edição de consumo):",
             value=st.session_state.edit_search_term,
-            key="search_edit_v16"
+            key="search_edit_v16" 
         )
         
         df_para_edicao_consumo = df_dashboard_master[
@@ -467,10 +494,11 @@ if not st.session_state.df_processado.empty:
             end_idx_edit = start_idx_edit + items_per_page_edit
             df_page_edit = df_edit_display.iloc[start_idx_edit:end_idx_edit]
             
-            cat_options_edit_consumo = [
+            cat_options_edit_consumo_base = [
                 cat for cat in st.session_state.categorias_editaveis 
                 if cat not in CATEGORIAS_FINANCEIRAS_FIXAS
             ]
+            OPCAO_CRIAR_NOVA = " < Criar Nova Categoria > "
 
             for _, row_to_edit in df_page_edit.iterrows():
                 edit_id = row_to_edit[COLUNA_EDIT_ID]
@@ -483,50 +511,92 @@ if not st.session_state.df_processado.empty:
                 cols_display_edit[1].markdown(f"R$ {row_to_edit[COLUNA_VALOR]:.2f}")
                 cols_display_edit[2].markdown(f"*Orig: {row_to_edit.get(COLUNA_FATURA_ORIGEM, 'N/A')}*")
                 
-                temp_cat_options_edit = cat_options_edit_consumo[:]
+                temp_cat_options_edit_para_linha = cat_options_edit_consumo_base[:]
+                if pd.notna(current_cat) and current_cat not in temp_cat_options_edit_para_linha:
+                    temp_cat_options_edit_para_linha.append(current_cat)
+                    temp_cat_options_edit_para_linha.sort()
+                
+                opcoes_finais_selectbox = temp_cat_options_edit_para_linha + [OPCAO_CRIAR_NOVA]
+                
                 default_index_cat_edit = 0
-                
-                if pd.notna(current_cat) and current_cat not in temp_cat_options_edit:
-                    temp_cat_options_edit.append(current_cat)
-                    temp_cat_options_edit.sort()
-                
-                if pd.notna(current_cat) and current_cat in temp_cat_options_edit:
-                    default_index_cat_edit = temp_cat_options_edit.index(current_cat)
-                elif "Sem Categoria" in temp_cat_options_edit: 
-                    default_index_cat_edit = temp_cat_options_edit.index("Sem Categoria")
+                if pd.notna(current_cat) and current_cat in opcoes_finais_selectbox:
+                    default_index_cat_edit = opcoes_finais_selectbox.index(current_cat)
+                elif "Sem Categoria/Pix Credito" in opcoes_finais_selectbox: 
+                    default_index_cat_edit = opcoes_finais_selectbox.index("Sem Categoria/Pix Credito")
 
-                selectbox_key = f"sel_cat_edit_v15_{edit_id}"
-                nova_categoria_selecionada = cols_display_edit[3].selectbox(
-                    "Categoria:", temp_cat_options_edit,
+                selectbox_key = f"sel_cat_edit_v_new_feat_{edit_id}"
+                categoria_escolhida_no_selectbox = cols_display_edit[3].selectbox(
+                    "Categoria:", opcoes_finais_selectbox,
                     index=default_index_cat_edit, key=selectbox_key,
                     label_visibility="collapsed"
                 )
 
-                if nova_categoria_selecionada != current_cat:
+                nova_categoria_a_aplicar = None
+
+                if categoria_escolhida_no_selectbox == OPCAO_CRIAR_NOVA:
+                    input_nova_categoria_key = f"input_new_cat_v_new_feat_{edit_id}"
+                    btn_salvar_nova_cat_key = f"btn_save_new_cat_v_new_feat_{edit_id}"
+                    
+                    with cols_display_edit[3].container():
+                        nome_nova_categoria_input = st.text_input(
+                            "Nome da Nova Categoria:",
+                            key=input_nova_categoria_key,
+                            placeholder="Ex: Padaria ABC"
+                        )
+                        if st.button("Salvar Nova", key=btn_salvar_nova_cat_key, type="primary"):
+                            nome_nova_categoria_strip = nome_nova_categoria_input.strip()
+                            if nome_nova_categoria_strip:
+                                if nome_nova_categoria_strip in CATEGORIAS_FINANCEIRAS_FIXAS:
+                                    st.error(f"'{nome_nova_categoria_strip}' é uma categoria financeira fixa e não pode ser criada para consumo.")
+                                elif nome_nova_categoria_strip in st.session_state.categorias_editaveis:
+                                    st.warning(f"Categoria '{nome_nova_categoria_strip}' já existe. Será aplicada à transação.")
+                                    nova_categoria_a_aplicar = nome_nova_categoria_strip
+                                else:
+                                    st.session_state.categorias_base_memoria[nome_nova_categoria_strip] = []
+                                    _atualizar_lista_categorias_editaveis()
+                                    
+                                    if salvar_categorias_base_para_json(st.session_state.categorias_base_memoria):
+                                        log_mensagem_app(f"Nova categoria '{nome_nova_categoria_strip}' criada e salva no JSON.", "success")
+                                        nova_categoria_a_aplicar = nome_nova_categoria_strip
+                                    else:
+                                        log_mensagem_app(f"ERRO ao salvar nova categoria '{nome_nova_categoria_strip}' no JSON.", "error")
+                            else:
+                                st.warning("Nome da nova categoria não pode ser vazio.")
+                else:
+                    nova_categoria_a_aplicar = categoria_escolhida_no_selectbox
+
+                if nova_categoria_a_aplicar and nova_categoria_a_aplicar != current_cat:
                     idx_global_df = st.session_state.df_processado[st.session_state.df_processado[COLUNA_EDIT_ID] == edit_id].index
                     if not idx_global_df.empty:
-                        st.session_state.df_processado.loc[idx_global_df[0], COLUNA_CATEGORIA] = nova_categoria_selecionada
+                        st.session_state.df_processado.loc[idx_global_df[0], COLUNA_CATEGORIA] = nova_categoria_a_aplicar
                         
                         titulo_norm_para_json = normalizar_texto(titulo_original_transacao)
                         
                         if pd.notna(current_cat) and current_cat in st.session_state.categorias_base_memoria:
-                            if titulo_norm_para_json in st.session_state.categorias_base_memoria[current_cat]:
-                                st.session_state.categorias_base_memoria[current_cat].remove(titulo_norm_para_json)
-                                if not st.session_state.categorias_base_memoria[current_cat] and current_cat not in CATEGORIAS_ESSENCIAIS_PARA_DROPDOWNS:
+                            if isinstance(st.session_state.categorias_base_memoria[current_cat], list):
+                                if titulo_norm_para_json in st.session_state.categorias_base_memoria[current_cat]:
+                                    st.session_state.categorias_base_memoria[current_cat].remove(titulo_norm_para_json)
+                                if not st.session_state.categorias_base_memoria[current_cat] and \
+                                   current_cat not in CATEGORIAS_ESSENCIAIS_PARA_DROPDOWNS:
                                     del st.session_state.categorias_base_memoria[current_cat]
                         
-                        if nova_categoria_selecionada not in st.session_state.categorias_base_memoria:
-                            st.session_state.categorias_base_memoria[nova_categoria_selecionada] = []
-                        if titulo_norm_para_json not in st.session_state.categorias_base_memoria[nova_categoria_selecionada]:
-                            st.session_state.categorias_base_memoria[nova_categoria_selecionada].append(titulo_norm_para_json)
+                        if nova_categoria_a_aplicar not in CATEGORIAS_FINANCEIRAS_FIXAS:
+                            if nova_categoria_a_aplicar not in st.session_state.categorias_base_memoria:
+                                st.session_state.categorias_base_memoria[nova_categoria_a_aplicar] = []
+                            
+                            if not isinstance(st.session_state.categorias_base_memoria.get(nova_categoria_a_aplicar), list):
+                                st.session_state.categorias_base_memoria[nova_categoria_a_aplicar] = []
+
+                            if titulo_norm_para_json not in st.session_state.categorias_base_memoria[nova_categoria_a_aplicar]:
+                                st.session_state.categorias_base_memoria[nova_categoria_a_aplicar].append(titulo_norm_para_json)
                         
-                        _atualizar_lista_categorias_editaveis() 
+                        _atualizar_lista_categorias_editaveis()
                         
                         if salvar_categorias_base_para_json(st.session_state.categorias_base_memoria):
-                            log_mensagem_app(f"Base atualizada: '{str(titulo_original_transacao)[:30]}...' -> '{nova_categoria_selecionada}'.", "success")
+                            log_mensagem_app(f"Transação '{str(titulo_original_transacao)[:30]}...' atualizada para '{nova_categoria_a_aplicar}'. Base de categorias salva.", "success")
                         else:
-                            log_mensagem_app("ERRO ao salvar base de categorias.", "error")
-                        st.rerun() 
+                            log_mensagem_app(f"ERRO ao salvar base de categorias após atualizar '{str(titulo_original_transacao)[:30]}...'.", "error")
+                        st.rerun()
                 st.markdown("---")
         else:
             if df_dashboard_master[~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_FINANCEIRAS_FIXAS)].empty:
@@ -535,6 +605,7 @@ if not st.session_state.df_processado.empty:
                  st.info("Nenhum item de consumo corresponde aos filtros de edição atuais.")
 
     df_para_relatorios = df_dashboard_master.copy()
+    
     st.sidebar.subheader("Filtros do Dashboard")
     
     if 'ciclo_fatura' not in df_para_relatorios.columns or df_para_relatorios['ciclo_fatura'].isnull().all():
@@ -558,7 +629,7 @@ if not st.session_state.df_processado.empty:
 
         if selected_periodos and "Todos" not in selected_periodos:
             df_para_relatorios = df_para_relatorios[df_para_relatorios['ciclo_fatura'].isin(selected_periodos)]
-        elif not selected_periodos and "Todos" not in selected_periodos : 
+        elif not selected_periodos and "Todos" not in selected_periodos :
              df_para_relatorios = pd.DataFrame(columns=df_dashboard_master.columns)
 
     df_despesas_pre_cat_filter = df_para_relatorios[
@@ -615,7 +686,7 @@ if not st.session_state.df_processado.empty:
     df_historico_consumo_plot = df_dashboard_master[
         ~df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_FINANCEIRAS_FIXAS) &
         (df_dashboard_master[COLUNA_VALOR] > 0) &
-        pd.notna(df_dashboard_master['mes_ano']) # Ensure mes_ano is available for grouping
+        pd.notna(df_dashboard_master['mes_ano'])
     ].copy()
 
     if not df_historico_consumo_plot.empty:
@@ -623,7 +694,7 @@ if not st.session_state.df_processado.empty:
         if not gastos_mensais_evolucao.empty:
             fig_evolucao_consumo = px.line(
                 gastos_mensais_evolucao, x='mes_ano', y=COLUNA_VALOR,
-                title="Evolução dos Gastos de Consumo Mensais", markers=True,
+                title="Evolução dos Gastos de Consumo Mensais (Histórico Completo)", markers=True,
                 labels={COLUNA_VALOR: "Gasto Consumo (R$)", 'mes_ano': "Mês/Ano da Transação"}
             )
             st.plotly_chart(fig_evolucao_consumo, use_container_width=True)
@@ -635,20 +706,23 @@ if not st.session_state.df_processado.empty:
         if not df_freq_calc.empty and not df_freq_calc[COLUNA_DATA].isnull().all():
             dias_com_gastos_por_mes = df_freq_calc.groupby('mes_ano')[COLUNA_DATA].nunique().reset_index()
             dias_com_gastos_por_mes.rename(columns={COLUNA_DATA: 'dias_com_transacao'}, inplace=True)
+            
             if not dias_com_gastos_por_mes.empty:
                 dias_com_gastos_por_mes['temp_date_for_daysinmonth'] = pd.to_datetime(dias_com_gastos_por_mes['mes_ano'].astype(str) + '-01', errors='coerce')
                 dias_com_gastos_por_mes.dropna(subset=['temp_date_for_daysinmonth'], inplace=True)
+                
                 if not dias_com_gastos_por_mes.empty:
-                    dias_com_gastos_por_mes['total_dias_no_mes'] = dias_com_gastos_por_mes['temp_date_for_daysinmonth'].dt.daysinmonth
+                    dias_com_gastos_por_mes['total_dias_no_mes'] = dias_com_gastos_por_mes['temp_date_for_daysinmonth'].dt.days_in_month
                     dias_com_gastos_por_mes['frequencia_uso_percent'] = np.where(
                         dias_com_gastos_por_mes['total_dias_no_mes'] > 0,
                         (dias_com_gastos_por_mes['dias_com_transacao'] / dias_com_gastos_por_mes['total_dias_no_mes']) * 100, 0
                     )
                     dias_com_gastos_por_mes.sort_values('mes_ano', inplace=True)
+                    
                     if not dias_com_gastos_por_mes.empty and 'frequencia_uso_percent' in dias_com_gastos_por_mes.columns:
                         fig_freq_uso = px.bar(
                             dias_com_gastos_por_mes, x='mes_ano', y='frequencia_uso_percent',
-                            title="Frequência de Uso Mensal (Consumo)",
+                            title="Frequência de Uso Mensal (Consumo - Histórico Completo)",
                             labels={'frequencia_uso_percent': "Frequência de Uso (%)", 'mes_ano': "Mês/Ano"},
                             text_auto=".1f"
                         )
@@ -658,7 +732,7 @@ if not st.session_state.df_processado.empty:
     df_encargos_historico_detalhes = df_dashboard_master[
         df_dashboard_master[COLUNA_CATEGORIA].isin(CATEGORIAS_ENCARGOS_FINANCEIROS) &
         (df_dashboard_master[COLUNA_VALOR] > 0) &
-        pd.notna(df_dashboard_master['mes_ano']) # Ensure mes_ano is available
+        pd.notna(df_dashboard_master['mes_ano'])
     ].copy()
 
     if not df_encargos_historico_detalhes.empty and 'mes_ano' in df_encargos_historico_detalhes.columns:
@@ -668,13 +742,13 @@ if not st.session_state.df_processado.empty:
             total_encargos_historico = encargos_mensais_plot_agg[COLUNA_VALOR].sum()
             fig_custos_fin_mensais = px.bar(
                 encargos_mensais_plot_agg, x='mes_ano', y=COLUNA_VALOR,
-                title=f"Custos Financeiros Mensais (Total: R$ {total_encargos_historico:,.2f})",
+                title=f"Custos Financeiros Mensais (Total Histórico: R$ {total_encargos_historico:,.2f})",
                 labels={COLUNA_VALOR: "Total Encargos (R$)", 'mes_ano': "Mês/Ano"},
                 text_auto=".2f"
             )
             plot_col_custos_fin.plotly_chart(fig_custos_fin_mensais, use_container_width=True)
 
-            with plot_col_custos_fin.expander("Ver Detalhes dos Custos Financeiros Mensais"):
+            with plot_col_custos_fin.expander("Ver Detalhes dos Custos Financeiros (Histórico Completo)"):
                 if not df_encargos_historico_detalhes.empty:
                     df_tabela_detalhes_encargos = df_encargos_historico_detalhes[
                         [COLUNA_DATA, 'mes_ano', COLUNA_TITULO, COLUNA_CATEGORIA, COLUNA_VALOR]
@@ -698,8 +772,8 @@ if not st.session_state.df_processado.empty:
         if not gastos_por_categoria_plot.empty:
             fig_dist_categoria_consumo = px.bar(
                 gastos_por_categoria_plot, x=COLUNA_CATEGORIA, y=COLUNA_VALOR,
-                title=f"Top {top_n_cat_consumo} Gastos de Consumo por Categoria", text_auto=".2f",
-                labels={COLUNA_VALOR: "Gasto Consumo (R$)"}
+                title=f"Top {top_n_cat_consumo} Gastos de Consumo por Categoria (Período Filtrado)", text_auto=".2f",
+                labels={COLUNA_VALOR: "Gasto Consumo (R$)", COLUNA_CATEGORIA: "Categoria"}
             )
             fig_dist_categoria_consumo.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig_dist_categoria_consumo, use_container_width=True)
@@ -716,8 +790,8 @@ if not st.session_state.df_processado.empty:
             if not df_dia_semana_plot.empty:
                 fig_dia_semana_plot = px.bar(
                     df_dia_semana_plot, x='dia_da_semana_pt', y=COLUNA_VALOR,
-                    title="Gastos de Consumo por Dia da Semana",
-                    labels={COLUNA_VALOR: "Gasto Consumo (R$)", 'dia_da_semana_pt':"Dia"}
+                    title="Gastos de Consumo por Dia da Semana (Período Filtrado)",
+                    labels={COLUNA_VALOR: "Gasto Consumo (R$)", 'dia_da_semana_pt':"Dia da Semana"}
                 )
                 plot_col_dia_semana.plotly_chart(fig_dia_semana_plot, use_container_width=True)
 
@@ -726,7 +800,7 @@ if not st.session_state.df_processado.empty:
             if not df_dia_mes_plot.empty:
                 fig_dia_mes_plot = px.bar(
                     df_dia_mes_plot, x='dia_do_mes', y=COLUNA_VALOR,
-                    title="Gastos de Consumo por Dia do Mês",
+                    title="Gastos de Consumo por Dia do Mês (Período Filtrado)",
                     labels={COLUNA_VALOR: "Gasto Consumo (R$)", 'dia_do_mes':"Dia do Mês"},
                     text_auto=".2f"
                 )
@@ -734,19 +808,19 @@ if not st.session_state.df_processado.empty:
                 plot_col_dia_mes.plotly_chart(fig_dia_mes_plot, use_container_width=True)
 
     if not df_despesas_relatorio.empty:
-        top_n_estabelecimentos = st.slider("Top N Estabelecimentos:", 5, 50, 15, key="slider_top_estab_g4_v7")
+        top_n_estabelecimentos = st.slider("Top N Estabelecimentos (Consumo - Período Filtrado):", 5, 50, 15, key="slider_top_estab_g4_v7")
         gastos_estabelecimentos_plot = df_despesas_relatorio.groupby(COLUNA_TITULO)[COLUNA_VALOR].sum().reset_index().sort_values(by=COLUNA_VALOR, ascending=False).head(top_n_estabelecimentos)
         if not gastos_estabelecimentos_plot.empty:
             fig_estabelecimentos_plot = px.bar(
                 gastos_estabelecimentos_plot, x=COLUNA_TITULO, y=COLUNA_VALOR,
-                title=f"Top {top_n_estabelecimentos} Estabelecimentos", text_auto=".2f",
-                labels={COLUNA_VALOR: "Gasto Consumo (R$)"}
+                title=f"Top {top_n_estabelecimentos} Estabelecimentos (Consumo - Período Filtrado)", text_auto=".2f",
+                labels={COLUNA_VALOR: "Gasto Consumo (R$)", COLUNA_TITULO: "Estabelecimento"}
             )
             fig_estabelecimentos_plot.update_layout(xaxis_tickangle=-60, height=500)
             st.plotly_chart(fig_estabelecimentos_plot, use_container_width=True)
 
-    if not df_historico_consumo_plot.empty: # df_historico_consumo_plot has non-consumo excluded and mes_ano
-        top_n_media_cat_consumo = st.slider("Top N Categorias por Média Mensal:", 3, 20, 10, key="slider_top_n_media_cat_g5_v7")
+    if not df_historico_consumo_plot.empty: 
+        top_n_media_cat_consumo = st.slider("Top N Categorias por Média Mensal (Consumo - Histórico Completo):", 3, 20, 10, key="slider_top_n_media_cat_g5_v7")
         if 'mes_ano' in df_historico_consumo_plot.columns and COLUNA_CATEGORIA in df_historico_consumo_plot.columns:
             media_cat_mes_historico_plot = df_historico_consumo_plot.groupby(['mes_ano', COLUNA_CATEGORIA])[COLUNA_VALOR].sum().unstack(fill_value=0).mean(axis=0).reset_index()
             media_cat_mes_historico_plot.columns = [COLUNA_CATEGORIA, 'media_mensal_gasto']
@@ -754,8 +828,8 @@ if not st.session_state.df_processado.empty:
             if not media_cat_mes_historico_plot.empty:
                 fig_media_cat_plot = px.bar(
                     media_cat_mes_historico_plot, x=COLUNA_CATEGORIA, y='media_mensal_gasto',
-                    title=f"Top {top_n_media_cat_consumo} Categorias por Média Mensal de Gasto (Consumo)",
-                    text_auto=".2f", labels={'media_mensal_gasto':"Média Consumo (R$)"}
+                    title=f"Top {top_n_media_cat_consumo} Categorias por Média Mensal de Gasto (Consumo - Histórico)",
+                    text_auto=".2f", labels={'media_mensal_gasto':"Média Mensal Consumo (R$)", COLUNA_CATEGORIA: "Categoria"}
                 )
                 fig_media_cat_plot.update_layout(xaxis_tickangle=-45)
                 st.plotly_chart(fig_media_cat_plot, use_container_width=True)
@@ -806,6 +880,9 @@ if not st.session_state.df_processado.empty:
                     df_consulta_exibir['Data'] = pd.to_datetime(df_consulta_exibir['Data']).dt.strftime('%d/%m/%Y')
             
                 format_dict = {'Valor (R$)': "R$ {:,.2f}"}
+                if 'Parc. Atual' in df_consulta_exibir.columns: format_dict['Parc. Atual'] = "{:.0f}"
+                if 'Parc. Total' in df_consulta_exibir.columns: format_dict['Parc. Total'] = "{:.0f}"
+
 
                 st.dataframe(
                     df_consulta_exibir.style.format(format_dict, na_rep='-'), 
@@ -817,7 +894,7 @@ if not st.session_state.df_processado.empty:
         else:
             st.info("Selecione um ou mais ciclos na lista acima para ver os detalhes das transações.")
     else:
-        st.info("Não há dados de ciclos de fatura disponíveis para consulta.")
+        st.info("Não há dados de ciclos de fatura disponíveis para consulta. Processe arquivos de fatura primeiro.")
 
     st.markdown("---")
     st.header("🤝 Contribua para Melhorar a Categorização")
