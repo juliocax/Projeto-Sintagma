@@ -753,6 +753,7 @@ if not st.session_state.df_processado.empty:
                     df_tabela_detalhes_encargos = df_encargos_historico_detalhes[
                         [COLUNA_DATA, 'mes_ano', COLUNA_TITULO, COLUNA_CATEGORIA, COLUNA_VALOR]
                     ].copy()
+                    
                     df_tabela_detalhes_encargos.sort_values(by=['mes_ano', COLUNA_DATA], inplace=True)
                     df_tabela_detalhes_encargos['Data Formatada'] = df_tabela_detalhes_encargos[COLUNA_DATA].dt.strftime('%d/%m/%Y')
                     df_tabela_detalhes_encargos_display = df_tabela_detalhes_encargos[

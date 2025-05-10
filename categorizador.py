@@ -23,6 +23,7 @@ COLUNA_FATURA_ORIGEM = 'fatura_origem'
 COLUNA_EDIT_ID = 'edit_id'
 SIMILARITY_THRESHOLD = 95
 
+
 def carregar_categorias_base_do_json(caminho_arquivo=CAMINHO_CATEGORIAS_BASE_JSON):
     if os.path.exists(caminho_arquivo):
         try:
